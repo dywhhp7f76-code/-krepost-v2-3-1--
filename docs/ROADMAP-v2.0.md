@@ -1,22 +1,23 @@
 --- 
-tags: [крепость, роадмэп, архитектура]
-date: 2026-06-10
-version: 2.0
+tags: [крепость, роадмэп, архитектура, мониторинг]
+date: 2026-06-19
+version: 2.1
 status: active
-replaces: roadmap-v1.0
+replaces: roadmap-v2.0
 hardware:
   mac_studio: M4 Max 64GB 1TB
   macbook_air: M5 32GB 1TB
-  fast_ssd: WD SN850X 2TB TB5
+  fast_ssd: WD SN850X 2TB TB5 (80Gbps)
   archive_hdd: 6TB
   ipad: Air M4 256GB
   iphone: Air 256GB
 models:
-  main: Qwen3.6-27B
+  main: Qwen3.6-27B (Q4_K_M)
   guard: Qwen3Guard-Gen-4B
   attacker: Mistral-7B-instruct
   embedder: BGE-M3
   reader: OCC-RAG-1.7B (planned)
+  image_gen: FLUX.1 [schnell] + [dev]
 next_review: 2026-07-01
 ---
 
