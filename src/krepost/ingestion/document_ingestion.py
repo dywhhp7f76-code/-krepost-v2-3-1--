@@ -444,8 +444,7 @@ EXTRACTORS = {
 
 class DocumentIngestion:
     DEFAULT_BASE_DIR = Path("inbox")
-    DEFAULT_VAULT_DIR = Path("
-vault")
+    DEFAULT_VAULT_DIR = Path("vault")
     INGESTED_SUBDIR = "ingested"
     MAX_FILE_SIZE_MB = 100          # P0-2-related: понижен с 500
     BATCH_HIGH_FAIL_THRESHOLD = 0.5
