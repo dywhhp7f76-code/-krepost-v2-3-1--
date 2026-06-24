@@ -73,8 +73,7 @@ class IngestEvent:
     timestamp: float = field(default_factory=time.time)
 
 
-def em
-it_event(event: IngestEvent, callback: Optional[Callable[[IngestEvent], None]]) -> None:
+def emit_event(event: IngestEvent, callback: Optional[Callable[[IngestEvent], None]]) -> None:
     """
     Локальные логи + внешний callback. ВАЖНО: callback вызывается синхронно,
     в т.ч. из потока executor — он ДОЛЖЕН быть sync и потокобезопасным
@@ -334,8 +333,7 @@ def extract_pdf(path: Path, enable_ocr: bool = False, on_event: Optional[Callabl
                 text = _ocr_pdf_page(page)
                 if text:
                     emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.OCR_FALLBACK_USED,
-                               messa
-ge=f"OCR использован для {path.name} стр.{i+1}",
+                               message=f"OCR использован для {path.name} стр.{i+1}",
                                payload={"path": str(path), "page": i + 1}), on_event)
             if text:
                 pages_text.append(f"<!-- Page {i+1} -->\n{text}")
@@ -388,8 +386,7 @@ def extract_docx(path: Path) -> str:
                 parts.append(text)
         elif block_type == "table":
             rows = []
-            for i, row in enumerate(block.ro
-ws):
+            for i, row in enumerate(block.rows):
                 # P2: \n в ячейке ломает markdown-таблицу → <br>
                 cells = [c.text.strip().replace("|", "\\|").replace("\n", "<br>") for c in row.cells]
                 rows.append("| " + " | ".join(cells) + " |")
@@ -494,8 +491,7 @@ vault")
                 self._hashes_dirty = False
             atomic_write(self.hashes_path, json.dumps(snapshot, indent=2, ensure_ascii=False))
         except Exception:
-            logger.ex
-ception("Failed to save hashes")
+            logger.exception("Failed to save hashes")
 
     # ── Paths (P0-2) ─────────────────────────────────────────────────────────
 
@@ -571,8 +567,7 @@ ception("Failed to save hashes")
             with self._hashes_lock:
                 already = (self.hashes.get(key) == file_hash)
             if already and out_path.exists():
-                emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType
-.FILE_SKIPPED,
+                emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.FILE_SKIPPED,
                            message=f"Skip (unchanged): {path.name}", payload={"path": path_str}), self.on_event)
                 return IngestResult(source_path=path_str, output_path=str(out_path), file_type=suffix,
                                     status="skipped", duration=round(time.time()-start,2))
@@ -679,8 +674,7 @@ ception("Failed to save hashes")
             duration=round(time.time()-start,2), results=results)
 
         if report.fail_rate > self.BATCH_HIGH_FAIL_THRESHOLD and report.total >= 5:
-            emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType
-.BATCH_HIGH_FAIL_RATE,
+            emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.BATCH_HIGH_FAIL_RATE,
                        message=f"Batch fail rate {report.fail_rate:.0%} ({report.failed}/{report.total})",
                        payload={"total": report.total, "failed": report.failed}), self.on_event)
         else:
@@ -723,8 +717,7 @@ class InboxWatcher:
 
         self._observer = Observer()
         self._observer.schedule(Handler(), str(self.inbox_dir), recursive=True)
-        self._observe
-r.start()
+        self._observer.start()
         logger.info(f"InboxWatcher started on {self.inbox_dir}")
 
     def _enqueue(self, path_str: str) -> None:
