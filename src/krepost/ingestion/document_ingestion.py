@@ -132,8 +132,7 @@ SKIP_DIR_PARTS = {".git", ".obsidian", "node_modules", "__pycache__", ".venv", "
 
 # Security-поля frontmatter, которые НИКОГДА не берутся из пользовательского
 # документа — всегда задаются системой (P0-1).
-SECURITY_FM_FIELDS = {"source", "quaranti
-ne", "ingested", "content_sha256", "source_path"}
+SECURITY_FM_FIELDS = {"source", "quarantine", "ingested", "content_sha256", "source_path"}
 
 
 def streaming_hash(path: Path, chunk_size: int = 65536) -> str:
