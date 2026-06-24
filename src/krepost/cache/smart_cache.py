@@ -52,7 +52,8 @@ from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
 
-def init_logging(log_dir: Path = Path("data/logs")) -> None:
+def init_logging(log_dir: Path 
+= Path("data/logs")) -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
     logger.add(log_dir / "smart_cache.log", rotation="10 MB", level="INFO", enqueue=True)
 
@@ -137,7 +138,7 @@ class L3Entry(BaseModel):
 class CacheStats(BaseModel):
     layer: CacheLevel
     entries: int
-    hits: int
+  hits: int
     misses: int
     hit_rate: float
     last_event_at_iso: Optional[str] = None
@@ -189,7 +190,8 @@ class _CacheBase:
         tmp.replace(path)
 
 
-class QueryEmbeddingCache(_CacheBase):
+class QueryEmbedding
+Cache(_CacheBase):
     LAYER = CacheLevel.L1_EMBEDDING
     QUERY_PREFIX = "query: "
 
@@ -233,7 +235,8 @@ class QueryEmbeddingCache(_CacheBase):
             return
         if self._jsonl_path.exists():
             for line in self._jsonl_path.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
+                l
+ine = line.strip()
                 if not line:
                     continue
                 try:
@@ -275,7 +278,8 @@ class QueryEmbeddingCache(_CacheBase):
 
     def _put(self, key: str, query: str, embedding: np.ndarray) -> None:
         if len(self._entries) >= self.max_entries:
-            self._evict(target_size=self.max_entries - 1)
+            self._evict(target_size=self.max_entries - 
+1)
         entry = L1Entry(key=key, query_preview=query[:80])
         self._entries[key] = entry
         self._embeddings[key] = embedding
@@ -320,7 +324,7 @@ class QueryEmbeddingCache(_CacheBase):
         return CacheStats(layer=self.LAYER, entries=len(self._entries), hits=self._hits,
                           misses=self._misses, hit_rate=round(self._hits / total, 3) if total else 0.0,
                           last_event_at_iso=(datetime.fromtimestamp(self._last_event_at, tz=timezone.utc).isoformat()
-                                             if self._last_event_at else None))
+                             if self._last_event_at else None))
 
     def close(self) -> None:
         self._full_rewrite()
@@ -371,7 +375,7 @@ class RAGResultsCache(_CacheBase):
         self._matrix_dirty = False
 
     def _load(self) -> None:
-        if self._jsonl_path.exists():
+     if self._jsonl_path.exists():
             for line in self._jsonl_path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line:
@@ -418,7 +422,8 @@ class RAGResultsCache(_CacheBase):
                 self._misses += 1
                 return None
             entry.hits += 1
-            entry.last_accessed_at = time.time()
+            entry.l
+ast_accessed_at = time.time()
             self._hits += 1
             self._emit(CacheEventType.HIT, EventLevel.GREEN, f"L2 hit | score={best_score:.3f}",
                        payload={"key": key, "score": best_score})
@@ -459,7 +464,8 @@ class RAGResultsCache(_CacheBase):
             level = EventLevel.YELLOW if len(keys) > 500 else EventLevel.GREEN
             event_type = (CacheEventType.MASS_INVALIDATION if len(keys) > 500
                           else CacheEventType.INVALIDATED_BY_NOTE)
-            self._emit(event_type, level,
+            self._emit(eve
+nt_type, level,
                        f"L2 invalidated {len(keys)} entries for note {note_path}",
                        payload={"note": note_path, "count": len(keys)})
         return len(keys)
@@ -505,7 +511,8 @@ class RAGResultsCache(_CacheBase):
     def stats(self) -> CacheStats:
         total = self._hits + self._misses
         return CacheStats(layer=self.LAYER, entries=len(self._entries), hits=self._hits,
-                          misses=self._misses, hit_rate=round(self._hits / total, 3) if total else 0.0,
+                          misses=self._misses, hit_rate=round(self._hits / t
+otal, 3) if total else 0.0,
                           last_event_at_iso=(datetime.fromtimestamp(self._last_event_at, tz=timezone.utc).isoformat()
                                              if self._last_event_at else None))
 
@@ -550,7 +557,7 @@ class LLMResponseCache(_CacheBase):
                 except Exception as e:
                     logger.warning(f"L3: skip bad entry: {e}")
         for key, entry in self._entries.items():
-            for note in entry.source_notes:
+          for note in entry.source_notes:
                 self._note_to_keys.setdefault(note, set()).add(key)
         logger.info(f"L3 loaded | entries={len(self._entries)}")
 
@@ -590,7 +597,8 @@ class LLMResponseCache(_CacheBase):
             self._note_to_keys.setdefault(note, set()).add(key)
         self._save_entry_append(entry)
         self._emit(CacheEventType.PUT, EventLevel.GREEN, f"L3 put | model={model}")
-        return key
+        return k
+ey
 
     def invalidate_by_note(self, note_path: str) -> int:
         keys = self._note_to_keys.pop(note_path, set())
@@ -636,7 +644,8 @@ class LLMResponseCache(_CacheBase):
             content += "\n"
         self._atomic_write(self._jsonl_path, content)
 
-    def stats(self) -> CacheStats:
+    def stats(sel
+f) -> CacheStats:
         total = self._hits + self._misses
         return CacheStats(layer=self.LAYER, entries=len(self._entries), hits=self._hits,
                           misses=self._misses, hit_rate=round(self._hits / total, 3) if total else 0.0,
@@ -685,7 +694,7 @@ class AnomalyDetector:
         self._check_interval = 30.0
 
     def record_put(self) -> None:
-        self._put_timestamps.add(time.time())
+self._put_timestamps.add(time.time())
         self._maybe_check()
 
     def record_hit(self) -> None:
@@ -731,7 +740,8 @@ class AnomalyDetector:
         total = hits + misses
         if total >= 10:
             miss_rate = misses / total
-            if miss_rate > self.miss_rate_threshold:
+            if mi
+ss_rate > self.miss_rate_threshold:
                 self.on_event(CacheEvent(
                     level=EventLevel.YELLOW, type=CacheEventType.MISS_RATE_HIGH,
                     layer=CacheLevel.L3_LLM,
@@ -771,7 +781,8 @@ class CacheLayer:
         self.cache_dir = cache_dir
         init_cache_dirs(cache_dir)
         self._model_name = model_name
-        self._encoder: Optional[SentenceTransformer] = None
+        self._encoder: Optional[SentenceTr
+ansformer] = None
         self.anomaly = AnomalyDetector(growth_threshold_per_min=anomaly_growth_threshold,
                                        miss_rate_threshold=anomaly_miss_rate_threshold,
                                        window_seconds=anomaly_window_seconds, on_event=on_event)
@@ -787,6 +798,5 @@ class CacheLayer:
                 on_event(event)
 
         self._on_event = _wrapped_on_event
-        self._l1_max = l
 
- [...]
+... [Content truncated]
