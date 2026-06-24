@@ -255,7 +255,6 @@ def build_frontmatter(source_path: Path, relative_path: str, content_body: str, 
 
 def _sanitize_and_attach_frontmatter(content: str, source_path: Path, relative_path: str, content_hash: str, out_path: Path) -> str:
 
-                                     on_event: Optional[Callable[[IngestEvent], None]] = None) -> str:
     """
     P0-1: единая точка — всегда выдаёт документ с системным frontmatter.
     Пользовательский frontmatter парсится, но security-поля перезаписываются.
