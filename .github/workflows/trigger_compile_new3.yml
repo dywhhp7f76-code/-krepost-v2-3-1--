@@ -1,0 +1,4 @@
+name: Trigger Compile 3
+
+on:
+  workflow_dispatch:
