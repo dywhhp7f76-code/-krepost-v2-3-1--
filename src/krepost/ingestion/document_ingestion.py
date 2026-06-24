@@ -266,7 +266,7 @@ def _sanitize_and_attach_frontmatter(content: str, source_path: Path, relative_p
             emit_event(IngestEvent(level=IngestEventLevel.YELLOW,
                                    type=IngestEventType.FRONTMATTER_OVERRIDDEN,
                                    message=f"Перезаписаны security-поля frontmatter в {source_path.name}",
-                                   payload={"path": str(source_path)}), on_event)
+                                   payload={"path": str(source_path)}, on_event)
     fm = build_frontmatter(source_path, relative_path, body, content_hash, existing=existing)
     return fm + body
 
@@ -322,7 +322,7 @@ def extract_pdf(path: Path, enable_ocr: bool = False, on_event: Optional[Callabl
         if n_pages > MAX_PDF_PAGES:
             emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.LARGE_FILE_DETECTED,
                        message=f"PDF {path.name}: {n_pages} страниц > лимит {MAX_PDF_PAGES}, обрезано",
-                       payload={"path": str(path), "pages": n_pages}), on_event)
+                       payload={"path": str(path), "pages": n_pages}, on_event)
         for i, page in enumerate(doc):
             if i >= MAX_PDF_PAGES:
                 break
@@ -332,7 +332,7 @@ def extract_pdf(path: Path, enable_ocr: bool = False, on_event: Optional[Callabl
                 if text:
                     emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.OCR_FALLBACK_USED,
                                message=f"OCR использован для {path.name} стр.{i+1}",
-                               payload={"path": str(path), "page": i + 1}), on_event)
+                               payload={"path": str(path), "page": i + 1}, on_event)
             if text:
                 pages_text.append(f"<!-- Page {i+1} -->\n{text}")
             else:
@@ -539,12 +539,12 @@ class DocumentIngestion:
      try:
             if not path.exists():
                 emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.FILE_FAILED,
-                           message=f"File not found: {path.name}", payload={"path": path_str}), self.on_event)
+                           message=f"File not found: {path.name}", payload={"path": path_str}, self.on_event)
                 return IngestResult(source_path=path_str, output_path="", file_type=suffix,
                                     status="failed", error="File not found", duration=round(time.time()-start,2))
             if suffix not in EXTRACTORS:
                 emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.FILE_SKIPPED,
-                           message=f"Unsupported format: {suffix}", payload={"path": path_str}), self.on_event)
+                           message=f"Unsupported format: {suffix}", payload={"path": path_str}, self.on_event)
                 return IngestResult(source_path=path_str, output_path="", file_type=suffix,
                                     status="failed", error=f"Unsupported format: {suffix}", duration=round(time.time()-start,2))
 
@@ -552,7 +552,7 @@ class DocumentIngestion:
             if size_mb > self.max_file_size_mb:
                 emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.LARGE_FILE_DETECTED,
                            message=f"Файл {path.name} {size_mb:.0f} МБ > лимит {self.max_file_size_mb} МБ",
-                           payload={"path": path_str, "size_mb": size_mb}), self.on_event)
+                           payload={"path": path_str, "size_mb": size_mb}, self.on_event)
                 return IngestResult(source_path=path_str, output_path="", file_type=suffix,
                                     status="failed", error=f"File too large: {size_mb:.0f} MB", duration=round(time.time()-start,2))
 
@@ -565,7 +565,7 @@ class DocumentIngestion:
                 already = (self.hashes.get(key) == file_hash)
             if already and out_path.exists():
                 emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.FILE_SKIPPED,
-                           message=f"Skip (unchanged): {path.name}", payload={"path": path_str}), self.on_event)
+                           message=f"Skip (unchanged): {path.name}", payload={"path": path_str}, self.on_event)
                 return IngestResult(source_path=path_str, output_path=str(out_path), file_type=suffix,
                                     status="skipped", duration=round(time.time()-start,2))
 
@@ -596,7 +596,7 @@ class DocumentIngestion:
             except OSError as e:
                 if isinstance(e, OSError) and e.errno == errno.ENOSPC:  # P2
                     emit_event(IngestEvent(level=IngestEventLevel.RED, type=IngestEventType.DISK_FULL,
-                               message=f"Диск полон при записи {out_path}", payload={"path": str(out_path)}), self.on_event)
+                               message=f"Диск полон при записи {out_path}", payload={"path": str(out_path)}, self.on_event)
                 logger.exception(f"Write failed for {out_path}")
    
              return IngestResult(source_path=path_str, output_path="", file_type=suffix,
@@ -609,7 +609,7 @@ class DocumentIngestion:
 
             emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.FILE_INGESTED,
                        message=f"Ingested {path.name} → {out_path.relative_to(self.vault_dir)}",
-                       payload={"source": path_str, "output": str(out_path), "chars": len(content)}), self.on_event)
+                       payload={"source": path_str, "output": str(out_path), "chars": len(content)}, self.on_event)
 
             # P0-3 + P1/P2: invalidate только при перезаписи (на первом ingest entries нет)
             if was_rewrite:
@@ -621,7 +621,7 @@ class DocumentIngestion:
             # P0-4: любой непредвиденный сбой (PermissionError, битый PDF, и т.д.)
             logger.exception(f"Ingest failed for {path}")
             emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.FILE_FAILED,
-                       message=f"Ingest failed: {path.name}: {e}", payload={"path": path_str}), self.on_event)
+                       message=f"Ingest failed: {path.name}: {e}", payload={"path": path_str}, self.on_event)
             return IngestResult(source_path=path_str, output_path="", file_type=suffix,
                                 status="failed", error=str(e), duration=round(time.time()-start,2))
 
@@ -642,7 +642,7 @@ class DocumentIngestion:
             self._loop = loop
         if not directory.exists():
             emit_event(IngestEvent(level=IngestEventLevel.RED, type=IngestEventType.VAULT_UNAVAILABLE,
-                       message=f"Directory not found: {directory}", payload={"path": str(directory)}), self.on_event)
+                       message=f"Directory not found: {directory}", payload={"path": str(directory)}, self.on_event)
             raise FileNotFoundError(f"Directory not found: {directory}")
         glob_pattern = "**/*" if recursive else "*"
         files = [f for f in directory.glob(glob_pattern)
@@ -673,7 +673,7 @@ class DocumentIngestion:
         if report.fail_rate > self.BATCH_HIGH_FAIL_THRESHOLD and report.total >= 5:
             emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.BATCH_HIGH_FAIL_RATE,
                        message=f"Batch fail rate {report.fail_rate:.0%} ({report.failed}/{report.total})",
-                       payload={"total": report.total, "failed": report.failed}), self.on_event)
+                       payload={"total": report.total, "failed": report.failed}, self.on_event)
         else:
             emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.BATCH_DONE,
                        message=f"Batch done: {report.success} success, {report.skipped} skipped, {report.failed} failed",
