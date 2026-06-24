@@ -1,0 +1,10 @@
+name: Trigger 3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Trigger 3"
