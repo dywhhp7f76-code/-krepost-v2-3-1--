@@ -6,7 +6,7 @@ from typing import List, Optional
 from loguru import logger
 
 # тот же парсер тела, что в ingestion — единый контракт хеширования
-from document_ingestion import _parse_existing_frontmatter
+from krepost.ingestion.document_ingestion import _parse_existing_frontmatter
 
 
 class TrustBridge:
