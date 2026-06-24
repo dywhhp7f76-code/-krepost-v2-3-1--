@@ -1,0 +1,4 @@
+name: Trigger Compile 2
+
+on:
+  workflow_dispatch:
