@@ -1,0 +1,4 @@
+name: Final Check
+
+on:
+  workflow_dispatch:
