@@ -154,8 +154,7 @@ def atomic_write(path: Path, content: str) -> None:
     os.replace(tmp, path)
 
 
-def detect_and_read_text(path: Path,
-                         on_event: Optional[Callable[[IngestEvent], None]] = None) -> str:
+def detect_and_read_text(path: Path,                         on_event: Optional[Callable[[IngestEvent], None]] = None) -> str:
     raw = path.read_bytes()
     for enc in ("utf-8-sig", "utf-8", "windows-1251", "cp1252"):
         try:
@@ -198,8 +197,7 @@ def _parse_existing_frontmatter(content: str) -> tuple[dict, str]:
     return parsed, m.group(2)
 
 
-def build_frontmatter(source_path: Path, relative_path: str, content_body: str,
-                      content_hash: str, existing: Optional[dict] = None) -> str:
+def build_frontmatter(source_path: Path, relative_path: str, content_body: str,                      content_hash: str, existing: Optional[dict] = None) -> str:
     """
     Собирает frontmatter. Security-поля ВСЕГДА системные (P0-1): даже если в
     existing пришли source:internal/quarantine:false — они перезаписываются.
@@ -249,8 +247,7 @@ def build_frontmatter(source_path: Path, relative_path: str, content_body: str,
     return f"---\n{yaml_block}---\n\n"
 
 
-def _sanitize_and_attach_frontmatter(content: str, source_path: Path, relative_path: str,
-                                     content_hash: str,
+def _sanitize_and_attach_frontmatter(content: str, source_path: Path, relative_path: str,                                     content_hash: str,
                                      on_event: Optional[Callable[[IngestEvent], None]] = None) -> str:
     """
     P0-1: единая точка — всегда выдаёт документ с системным frontmatter.
@@ -308,8 +305,7 @@ def _docx_heading_level(paragraph) -> Optional[int]:
     return None
 
 
-def extract_pdf(path: Path, enable_ocr: bool = False,
-                on_event: Optional[Callable[[IngestEvent], None]] = None) -> str:
+def extract_pdf(path: Path, enable_ocr: bool = False,                on_event: Optional[Callable[[IngestEvent], None]] = None) -> str:
     import fitz
     pages_text: List[str] = []
     has_empty_pages = False
