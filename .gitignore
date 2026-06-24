@@ -1,0 +1,44 @@
+# runtime-данные, не код
+data/
+*.db
+*.jsonl
+*.npy
+*.npz
+chroma_*/
+*.log
+
+# секреты
+.env
+*.key
+*.secret
+
+# системное
+__pycache__/
+.venv/
+.DS_Store
+.obsidian/
+.idea/
+
+# тесты и временные файлы
+_test/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.ehthumbs.db
