@@ -9,7 +9,7 @@
 - File Watcher (автообновление)
 - Metadata Filtering по тегам Obsidian
 - Async поддержка
-- Системный промпт с &lt;нет_данных&gt;
+- Системный промпт с <нет_данных>
 - Бонус: Streamlit веб-интерфейс
 
   
@@ -62,13 +62,13 @@ from watchdog.events import FileSystemEventHandler
 
 # ================== КОНФИГУРАЦИЯ ==================
 
-OBSIDIAN_PATH = &quot;/path/to/your/obsidian/vault&quot;
+OBSIDIAN_PATH = "/path/to/your/obsidian/vault"
 
-CHROMA_PATH = &quot;./chroma_obsidian_final&quot;
+CHROMA_PATH = "./chroma_obsidian_final"
 
-EMBED_MODEL = &quot;nomic-embed-text&quot;
+EMBED_MODEL = "nomic-embed-text"
 
-RERANKER_MODEL = &quot;BAAI/bge-reranker-base&quot;
+RERANKER_MODEL = "BAAI/bge-reranker-base"
 
   
 
@@ -82,7 +82,7 @@ Settings.embed_model = embed_model
 
 chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
 
-chroma_collection = chroma_client.get_or_create_collection(&quot;obsidian_final&quot;)
+chroma_collection = chroma_client.get_or_create_collection("obsidian_final")
 
 vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
 
@@ -104,7 +104,7 @@ splitter = SemanticSplitterNodeParser(
 
 # ================== ИНКРЕМЕНТАЛЬНАЯ ИНДЕКСАЦИЯ ==================
 
-def get_file_hash(path: Path) -&gt; str:
+def get_file_hash(path: Path) -> str:
 
     return hashlib.md5(path.read_bytes()).hexdigest()
 
@@ -116,7 +116,7 @@ def load_obsidian_final(path: str, force_rebuild: bool = False):
 
     documents = reader.load_data(Path(path))
 
-    hash_file = Path(CHROMA_PATH) / &quot;file_hashes.json&quot;
+    hash_file = Path(CHROMA_PATH) / "file_hashes.json"
 
     existing_hashes = json.loads(hash_file.read_text()) if hash_file.exists() else {}
 
@@ -126,7 +126,7 @@ def load_obsidian_final(path: str, force_rebuild: bool = False):
 
     for doc in documents:
 
-        file_path = Path(doc.metadata[&quot;file_path&quot;])
+        file_path = Path(doc.metadata["file_path"])
 
         current_hash = get_file_hash(file_path)
 
@@ -136,15 +136,15 @@ def load_obsidian_final(path: str, force_rebuild: bool = False):
 
             for node in nodes:
 
-                node.metadata[&quot;source&quot;] = str(file_path)
+                node.metadata["source"] = str(file_path)
 
-                node.metadata[&quot;file_hash&quot;] = current_hash
+                node.metadata["file_hash"] = current_hash
 
                 # Извлекаем теги Obsidian
 
-                tags = [tag.strip() for tag in doc.text.split() if tag.startswith(&quot;#&quot;)]
+                tags = [tag.strip() for tag in doc.text.split() if tag.startswith("#")]
 
-                node.metadata[&quot;tags&quot;] = tags
+                node.metadata["tags"] = tags
 
             new_nodes.extend(nodes)
 
@@ -156,7 +156,7 @@ def load_obsidian_final(path: str, force_rebuild: bool = False):
 
     if new_nodes:
 
-        print(f&quot;Обновлено: {len(updated_files)} файлов → {len(new_nodes)} чанков&quot;)
+        print(f"Обновлено: {len(updated_files)} файлов → {len(new_nodes)} чанков")
 
     return new_nodes
 
@@ -206,7 +206,7 @@ def create_ultimate_query_engine(index, tag_filter: Optional[str] = None):
 
     if tag_filter:
 
-        filters = MetadataFilters(filters=[ExactMatchFilter(key=&quot;tags&quot;, value=tag_filter)])
+        filters = MetadataFilters(filters=[ExactMatchFilter(key="tags", value=tag_filter)])
 
     query_engine = RetrieverQueryEngine.from_args(
 
@@ -236,9 +236,9 @@ class ObsidianWatcher(FileSystemEventHandler):
 
     def on_modified(self, event):
 
-        if event.src_path.endswith(&quot;.md&quot;):
+        if event.src_path.endswith(".md"):
 
-            print(f&quot;\n[Auto] Изменён: {event.src_path}&quot;)
+            print(f"\n[Auto] Изменён: {event.src_path}")
 
             new_nodes = load_obsidian_final(OBSIDIAN_PATH)
 
@@ -246,13 +246,13 @@ class ObsidianWatcher(FileSystemEventHandler):
 
                 self.index.insert_nodes(new_nodes)
 
-                print(&quot;Индекс обновлён автоматически.&quot;)
+                print("Индекс обновлён автоматически.")
 
   
 
 # ================== СИСТЕМНЫЙ ПРОМПТ ==================
 
-SYSTEM_PROMPT = &quot;&quot;&quot;
+SYSTEM_PROMPT = """
 
 Ты — точный ассистент, который отвечает **только** на основе контекста из Obsidian.
 
@@ -262,7 +262,7 @@ SYSTEM_PROMPT = &quot;&quot;&quot;
 
 - Отвечай только на основе [КОНТЕКСТ]
 
-- Если информации нет — напиши ровно: `&lt;нет_данных&gt;`
+- Если информации нет — напиши ровно: `<нет_данных>`
 
 - В конце ответа указывай источники: `Источники: [[Название заметки]]`
 
@@ -282,7 +282,7 @@ SYSTEM_PROMPT = &quot;&quot;&quot;
 
 Ответ:
 
-&quot;&quot;&quot;
+"""
 
   
 
@@ -300,9 +300,9 @@ async def async_query(query_engine, question: str):
 
 # ================== ЗАПУСК ==================
 
-if __name__ == &quot;__main__&quot;:
+if __name__ == "__main__":
 
-    print(&quot;=== Запуск Ultimate RAG для Obsidian ===&quot;)
+    print("=== Запуск Ultimate RAG для Obsidian ===")
 
     nodes = load_obsidian_final(OBSIDIAN_PATH)
 
@@ -320,11 +320,11 @@ if __name__ == &quot;__main__&quot;:
 
     observer.start()
 
-    print(&quot;\nСистема запущена!&quot;)
+    print("\nСистема запущена!")
 
-    print(&quot;Используй: query_engine.query(&#x27;твой вопрос&#x27;)&quot;)
+    print("Используй: query_engine.query('твой вопрос')")
 
-    print(&quot;Или с фильтром: create_ultimate_query_engine(index, tag_filter=&#x27;#2026&#x27;)&quot;)
+    print("Или с фильтром: create_ultimate_query_engine(index, tag_filter='#2026')")
 
     try:
 
@@ -344,9 +344,9 @@ if __name__ == &quot;__main__&quot;:
 
 # Только заметки с тегом #2026
 
-query_engine = create_ultimate_query_engine(index, tag_filter=&quot;#2026&quot;)
+query_engine = create_ultimate_query_engine(index, tag_filter="#2026")
 
-response = query_engine.query(&quot;Какие у меня цели?&quot;)
+response = query_engine.query("Какие у меня цели?")
 
   
 
@@ -360,17 +360,17 @@ from llama_index.core import VectorStoreIndex
 
   
 
-st.title(&quot;Obsidian RAG Assistant&quot;)
+st.title("Obsidian RAG Assistant")
 
   
 
-query = st.text_input(&quot;Введите вопрос:&quot;)
+query = st.text_input("Введите вопрос:")
 
-tag = st.text_input(&quot;Фильтр по тегу (опционально)&quot;)
+tag = st.text_input("Фильтр по тегу (опционально)")
 
   
 
-if st.button(&quot;Задать вопрос&quot;):
+if st.button("Задать вопрос"):
 
     qe = create_ultimate_query_engine(index, tag_filter=tag if tag else None)
 
@@ -378,11 +378,11 @@ if st.button(&quot;Задать вопрос&quot;):
 
     st.write(response.response)
 
-    with st.expander(&quot;Источники&quot;):
+    with st.expander("Источники"):
 
         for node in response.source_nodes:
 
-            st.write(f&quot;- {node.metadata.get(&#x27;source&#x27;)}&quot;)
+            st.write(f"- {node.metadata.get('source')}")
 
 Запуск:
 

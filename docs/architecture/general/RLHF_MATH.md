@@ -26,7 +26,7 @@ $$ h_l = h_{\text{helpful}} + h_{\text{safety}} + h_{\text{conflict}} $$
 Пусть ( \mathbf{v}_h ) и ( \mathbf{v}_s ) — главные направления (principal directions), выученные reward models для helpfulness и safety соответственно.
 Тогда для конфликтных токенов проекция скрытого состояния на эти оси удовлетворяет:
 $$ \langle h, \mathbf{v}_h \rangle \approx c, \quad \langle h, \mathbf{v}_s \rangle \approx -k \cdot c $$
-где ( c ) — некоторая средняя величина, а ( k &gt; 0 ) отражает силу конфликта.
+где ( c ) — некоторая средняя величина, а ( k > 0 ) отражает силу конфликта.
 Характеристики конфликтной зоны:
 	•	Низкая норма проекции на safety-направление при одновременной активации helpful-направления.
 	•	Высокая дисперсия в определённых attention heads (те самые RLHF-trained heads, которые мы обсуждали раньше).
@@ -38,7 +38,7 @@ $$ \langle h, \mathbf{v}_h \rangle \approx c, \quad \langle h, \mathbf{v}_s \ran
 	•	“Чисто unsafe” токены — в другом.
 	•	Конфликтная зона — это тонкая “трубка” или гиперплоскость между ними, где модель вынуждена балансировать.
 Математически это можно описать как:
-$$ \mathcal{Z}_{\text{conflict}} = { h \mid | \langle h, \mathbf{v}_h \rangle - \alpha \langle h, \mathbf{v}_s \rangle | &lt; \epsilon } $$
+$$ \mathcal{Z}_{\text{conflict}} = { h \mid | \langle h, \mathbf{v}_h \rangle - \alpha \langle h, \mathbf{v}_s \rangle | < \epsilon } $$
 где (\alpha) — коэффициент компромисса, выученный моделью, а (\epsilon) — ширина зоны неопределённости.
 Именно в этой зоне модель чаще всего:
 	•	Даёт полуотказы (“Я не могу полностью ответить, но вот общая идея…”)

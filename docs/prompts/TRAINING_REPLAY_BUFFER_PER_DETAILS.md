@@ -106,7 +106,7 @@ class PrioritizedReplayBuffer:
 
     def update_priorities(self, indices, losses):
 
-        &quot;&quot;&quot;Обновляем приоритеты после обучения&quot;&quot;&quot;
+        """Обновляем приоритеты после обучения"""
 
         for idx, loss in zip(indices, losses):
 

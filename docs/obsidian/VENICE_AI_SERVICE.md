@@ -7,7 +7,7 @@ markdown
 # Description: Создает JSON-структуру для файлов Obsidian Canvas (.canvas), визуализируя связи между заметками на интерактивной доске.
 
 ## Triggers
-- &quot;Сделай холст для Obsidian&quot;, &quot;Сделай Canvas&quot;, &quot;Сгенерируй файл .canvas&quot;, &quot;Визуальная схема для Обсидиан&quot;.
+- "Сделай холст для Obsidian", "Сделай Canvas", "Сгенерируй файл .canvas", "Визуальная схема для Обсидиан".
 
 ## Workflow Instructions
 1. Изучи логическую схему или майндмэп, предложенный пользователем.
@@ -19,10 +19,10 @@ markdown
 *(Создайте пустой файл `.canvas` в Obsidian, откройте его как текстовый файл и вставьте код ниже)*
 ```json
 {
-  &quot;nodes&quot;: [
-    {&quot;id&quot;: &quot;n1&quot;, &quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;# Главная цель&quot;, &quot;x&quot;: 0, &quot;y&quot;: 0, &quot;width&quot;: 250, &quot;height&quot;: 100}
+  "nodes": [
+    {"id": "n1", "type": "text", "text": "# Главная цель", "x": 0, "y": 0, "width": 250, "height": 100}
   ],
-  &quot;edges&quot;: []
+  "edges": []
 }
 ```
 ````

@@ -22,7 +22,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
   
 
-embed_model = HuggingFaceEmbedding(model_name=&quot;nomic-embed-text&quot;)
+embed_model = HuggingFaceEmbedding(model_name="nomic-embed-text")
 
   
 
@@ -70,7 +70,7 @@ def get_file_hash(filepath):
 
     import hashlib
 
-    with open(filepath, &quot;rb&quot;) as f:
+    with open(filepath, "rb") as f:
 
         return hashlib.md5(f.read()).hexdigest()
 
@@ -98,11 +98,11 @@ import chromadb
 
 # === Настройки ===
 
-OBSIDIAN_PATH = &quot;/path/to/your/obsidian/vault&quot;   # ← укажи свой путь
+OBSIDIAN_PATH = "/path/to/your/obsidian/vault"   # ← укажи свой путь
 
-CHROMA_PATH = &quot;./chroma_db&quot;
+CHROMA_PATH = "./chroma_db"
 
-EMBED_MODEL_NAME = &quot;nomic-embed-text&quot;
+EMBED_MODEL_NAME = "nomic-embed-text"
 
   
 
@@ -118,7 +118,7 @@ Settings.embed_model = embed_model
 
 chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
 
-chroma_collection = chroma_client.get_or_create_collection(&quot;obsidian_notes&quot;)
+chroma_collection = chroma_client.get_or_create_collection("obsidian_notes")
 
 vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
 
@@ -166,13 +166,13 @@ index = VectorStoreIndex(nodes, storage_context=storage_context)
 
   
 
-print(f&quot;Проиндексировано {len(nodes)} чанков из {len(documents)} заметок.&quot;)
+print(f"Проиндексировано {len(nodes)} чанков из {len(documents)} заметок.")
 
 4. Инкрементальное обновление (добавление/изменение)
 
 def update_index_incrementally(index, obsidian_path):
 
-    &quot;&quot;&quot;Простая инкрементальная индексация&quot;&quot;&quot;
+    """Простая инкрементальная индексация"""
 
     from llama_index.core import Document
 
@@ -184,7 +184,7 @@ def update_index_incrementally(index, obsidian_path):
 
   
 
-    for file_path in Path(obsidian_path).rglob(&quot;*.md&quot;):
+    for file_path in Path(obsidian_path).rglob("*.md"):
 
         file_hash = hashlib.md5(file_path.read_bytes()).hexdigest()
 
@@ -208,7 +208,7 @@ def update_index_incrementally(index, obsidian_path):
 
   
 
-    print(&quot;Индекс обновлён инкрементально.&quot;)
+    print("Индекс обновлён инкрементально.")
 
 5. Полноценный Query Pipeline
 
@@ -246,7 +246,7 @@ query_engine = RetrieverQueryEngine.from_args(
 
 # Пример запроса
 
-response = query_engine.query(&quot;Какой у меня план на 2026 год?&quot;)
+response = query_engine.query("Какой у меня план на 2026 год?")
 
 print(response)
 

@@ -28,7 +28,7 @@ Few-shot примеры для Chain-of-Thought промптов (оптимиз
 Код:
 ```python
 def is_prime(n):
-    if n &lt;= 1:
+    if n <= 1:
         return False
     for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
