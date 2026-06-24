@@ -1,5 +1,3 @@
-url: https://raw.githubusercontent.com/dywhhp7f76-code/-krepost-v2-3-1--/restructure/v2.2/src/krepost/ingestion/document_ingestion.py
-
 from __future__ import annotations
 
 import asyncio
@@ -130,7 +128,8 @@ class IngestReport(BaseModel):
 
 SKIP_DIR_PARTS = {".git", ".obsidian", "node_modules", "__pycache__", ".venv", ".idea", ".DS_Store"}
 
-# Security-поля frontmatter, которые НИКОГДА не берутся из пользовательского
+# Security-поля frontmatter, к
+оторые НИКОГДА не берутся из пользовательского
 # документа — всегда задаются системой (P0-1).
 SECURITY_FM_FIELDS = {"source", "quarantine", "ingested", "content_sha256", "source_path"}
 
@@ -182,7 +181,8 @@ def _parse_existing_frontmatter(content: str) -> tuple[dict, str]:
     """
     Строгий парс frontmatter (P0-1, P2): только если контент начинается с '---\\n'
     И есть закрывающий '---'. Возвращает (поля, тело_без_frontmatter).
-    Если frontmatter нет/битый — ({}, исходный_контент).
+    Есл
+и frontmatter нет/битый — ({}, исходный_контент).
     """
     stripped = content.lstrip("\ufeff")  # снять BOM
 
@@ -231,9 +231,9 @@ def build_frontmatter(source_path: Path, relative_path: str, content_body: str, 
         "tags": tags or ["ingested"],
         # P2: doc-date сохраняется при re-ingest, ingestion_date обновляется
         "date": existing.get("date") or datetime.now().strftime("%Y-%m-%d"),
-        "ingestion_date": datetime.now().strftime("%Y-%m-%d"),
+        "ingestion_date": 
+datetime.now().strftime("%Y-%m-%d"),
         # --- SECURITY-поля, всегда системные ---
-   
      "source": "external",
         "source_format": source_path.suffix.lstrip("."),
         "source_path": str(relative_path),
@@ -280,8 +280,7 @@ MAX_CONTENT_CHARS = 2_000_000
 
 
 def _iter_docx_blocks(doc):
-    from 
-docx.oxml.ns import qn
+    from docx.oxml.ns import qn
     from docx.text.paragraph import Paragraph
     from docx.table import Table
     for child in doc.element.body.iterchildren():
@@ -331,7 +330,8 @@ def extract_pdf(path: Path, enable_ocr: bool = False, on_event: Optional[Callabl
                 text = _ocr_pdf_page(page)
                 if text:
                     emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.OCR_FALLBACK_USED,
-                               message=f"OCR использован для {path.name} стр.{i+1}",
+                               message=f"OCR использован для {path.name} стр
+.{i+1}",
                                payload={"path": str(path), "page": i + 1}, on_event)
             if text:
                 pages_text.append(f"<!-- Page {i+1} -->\n{text}")
@@ -385,7 +385,8 @@ def extract_docx(path: Path) -> str:
         elif block_type == "table":
             rows = []
             for i, row in enumerate(block.rows):
-                # P2: \n в ячейке ломает markdown-таблицу → <br>
+                # P2: \n в ячейке ло
+мает markdown-таблицу → <br>
                 cells = [c.text.strip().replace("|", "\\|").replace("\n", "<br>") for c in row.cells]
                 rows.append("| " + " | ".join(cells) + " |")
                 if i == 0:
@@ -446,6 +447,7 @@ class DocumentIngestion:
     DEFAULT_BASE_DIR = Path("inbox")
     DEFAULT_VAULT_DIR = Path("vault")
     INGESTED_SUBDIR = "ingested"
+
     MAX_FILE_SIZE_MB = 100          # P0-2-related: понижен с 500
     BATCH_HIGH_FAIL_THRESHOLD = 0.5
     DEFAULT_MAX_CONCURRENT = 4      # P1-5
@@ -490,7 +492,8 @@ class DocumentIngestion:
         except Exception:
             logger.exception("Failed to save hashes")
 
-    # ── Paths (P0-2) ─────────────────────────────────────────────────────────
+    # ─
+─ Paths (P0-2) ─────────────────────────────────────────────────────────
 
     def _path_tag(self, source: Path) -> str:
         """Короткий хеш абсолютного пути — разводит одноимённые файлы вне base_dir."""
@@ -535,9 +538,9 @@ class DocumentIngestion:
         suffix = path.suffix.lower()
         path_str = str(path)
         # P0-4: всё тело под try — один битый файл не рушит batch
-   
      try:
-            if not path.exists():
+            if not path.exists
+():
                 emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.FILE_FAILED,
                            message=f"File not found: {path.name}", payload={"path": path_str}, self.on_event)
                 return IngestResult(source_path=path_str, output_path="", file_type=suffix,
@@ -565,7 +568,8 @@ class DocumentIngestion:
                 already = (self.hashes.get(key) == file_hash)
             if already and out_path.exists():
                 emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.FILE_SKIPPED,
-                           message=f"Skip (unchanged): {path.name}", payload={"path": path_str}, self.on_event)
+                           m
+essage=f"Skip (unchanged): {path.name}", payload={"path": path_str}, self.on_event)
                 return IngestResult(source_path=path_str, output_path=str(out_path), file_type=suffix,
                                     status="skipped", duration=round(time.time()-start,2))
 
@@ -598,7 +602,6 @@ class DocumentIngestion:
                     emit_event(IngestEvent(level=IngestEventLevel.RED, type=IngestEventType.DISK_FULL,
                                message=f"Диск полон при записи {out_path}", payload={"path": str(out_path)}, self.on_event)
                 logger.exception(f"Write failed for {out_path}")
-   
              return IngestResult(source_path=path_str, output_path="", file_type=suffix,
                                     status="failed", error=f"Write failed: {e}", duration=round(time.time()-start,2))
 
@@ -635,7 +638,8 @@ class DocumentIngestion:
 кируем loop
         return result
 
-    async def ingest_directory(self, directory: Path, recursive: bool = True,
+    async 
+def ingest_directory(self, directory: Path, recursive: bool = True,
                                max_concurrent: Optional[int] = None) -> IngestReport:
         loop = asyncio.get_running_loop()
         if self._loop is None:
@@ -672,7 +676,7 @@ class DocumentIngestion:
 
         if report.fail_rate > self.BATCH_HIGH_FAIL_THRESHOLD and report.total >= 5:
             emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.BATCH_HIGH_FAIL_RATE,
-                       message=f"Batch fail rate {report.fail_rate:.0%} ({report.failed}/{report.total})",
+message=f"Batch fail rate {report.fail_rate:.0%} ({report.failed}/{report.total})",
                        payload={"total": report.total, "failed": report.failed}, self.on_event)
         else:
             emit_event(IngestEvent(level=IngestEventLevel.GREEN, type=IngestEventType.BATCH_DONE,
@@ -715,7 +719,8 @@ class InboxWatcher:
         self._observer = Observer()
         self._observer.schedule(Handler(), str(self.inbox_dir), recursive=True)
         self._observer.start()
-        logger.info(f"InboxWatcher started on {self.inbox_dir}")
+        logger.info(f"InboxWatcher st
+arted on {self.inbox_dir}")
 
     def _enqueue(self, path_str: str) -> None:
         # P1-2/P0-3: из потока watchdog только перебрасываем в loop, без доступа к _pending
