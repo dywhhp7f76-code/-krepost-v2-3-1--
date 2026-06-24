@@ -1,0 +1,4 @@
+name: Final Trigger
+
+on:
+  workflow_dispatch:
