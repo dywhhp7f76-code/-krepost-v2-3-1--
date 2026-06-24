@@ -174,7 +174,7 @@ def detect_and_read_text(path: Path, on_event: Optional[Callable[[IngestEvent], 
     # P2: явная телеметрия о деградации (U+FFFD ломает эмбеддинги)
     emit_event(IngestEvent(level=IngestEventLevel.YELLOW, type=IngestEventType.ENCODING_FALLBACK,
                            message=f"Decode с заменой символов: {path.name}",
-                           payload={"path": str(path)}), on_event)
+                           payload={"path": str(path)}, on_event)
     return raw.decode("utf-8", errors="replace")
 
 
