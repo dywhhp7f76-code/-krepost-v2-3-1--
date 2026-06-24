@@ -1,4 +1,4 @@
-&quot;&quot;&quot;
+"""
 krepost/cache/smart_cache.py
 Smart Cache v2.1 — трёхслойный кэш для архитектуры «Крепость».
 
@@ -26,12 +26,12 @@ Smart Cache v2.1 — трёхслойный кэш для архитектуры
   FIX-1  _atomic_write_npz: temp-имя кончается на .npz (numpy дописывает .npz сам;
          иначе реальный файл *.npz.tmp.npz, а replace() ищет *.npz.tmp → краш L1/L2).
   FIX-2  AnomalyDetector вынесен в отдельный класс (тестируемость + чистый API).
-  FIX-3  growth-формула: окно &lt; 60с → абсолютный порог за окно (без экстраполяции
+  FIX-3  growth-формула: окно < 60с → абсолютный порог за окно (без экстраполяции
          в минуту, иначе 10 puts за 0.5с → 1200/мин = мнимый флуд); окно ≥ 60с →
          нормировка к минуте.
   FIX-4  CacheLayer API согласован с тестами: is_ready, l1_max_entries,
-         {l2_removed,l3_removed}, stats()[&quot;anomaly&quot;], lazy warmup.
-&quot;&quot;&quot;
+         {l2_removed,l3_removed}, stats()["anomaly"], lazy warmup.
+"""
 
 from __future__ import annotations
 
@@ -52,43 +52,43 @@ from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
 
-def init_logging(log_dir: Path = Path(&quot;data/logs&quot;)) -&gt; None:
+def init_logging(log_dir: Path = Path("data/logs")) -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
-    logger.add(log_dir / &quot;smart_cache.log&quot;, rotation=&quot;10 MB&quot;, level=&quot;INFO&quot;, enqueue=True)
+    logger.add(log_dir / "smart_cache.log", rotation="10 MB", level="INFO", enqueue=True)
 
 
-def init_cache_dirs(cache_dir: Path = Path(&quot;data/cache&quot;)) -&gt; None:
+def init_cache_dirs(cache_dir: Path = Path("data/cache")) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
 
 
 class SecurityVerdict(str, Enum):
-    GREEN = &quot;green&quot;
-    YELLOW = &quot;yellow&quot;
-    RED = &quot;red&quot;
+    GREEN = "green"
+    YELLOW = "yellow"
+    RED = "red"
 
 
 class CacheLevel(str, Enum):
-    L1_EMBEDDING = &quot;l1_embedding&quot;
-    L2_RAG = &quot;l2_rag&quot;
-    L3_LLM = &quot;l3_llm&quot;
+    L1_EMBEDDING = "l1_embedding"
+    L2_RAG = "l2_rag"
+    L3_LLM = "l3_llm"
 
 
 class EventLevel(str, Enum):
-    GREEN = &quot;green&quot;
-    YELLOW = &quot;yellow&quot;
-    RED = &quot;red&quot;
+    GREEN = "green"
+    YELLOW = "yellow"
+    RED = "red"
 
 
 class CacheEventType(str, Enum):
-    HIT = &quot;hit&quot;
-    MISS = &quot;miss&quot;
-    PUT = &quot;put&quot;
-    EVICTED = &quot;evicted&quot;
-    INVALIDATED_BY_NOTE = &quot;invalidated_by_note&quot;
-    MISS_RATE_HIGH = &quot;miss_rate_high&quot;
-    GROWTH_ANOMALY = &quot;growth_anomaly&quot;
-    MASS_INVALIDATION = &quot;mass_invalidation&quot;
-    MODEL_MISMATCH = &quot;model_mismatch&quot;
+    HIT = "hit"
+    MISS = "miss"
+    PUT = "put"
+    EVICTED = "evicted"
+    INVALIDATED_BY_NOTE = "invalidated_by_note"
+    MISS_RATE_HIGH = "miss_rate_high"
+    GROWTH_ANOMALY = "growth_anomaly"
+    MASS_INVALIDATION = "mass_invalidation"
+    MODEL_MISMATCH = "model_mismatch"
 
 
 @dataclass
@@ -158,11 +158,11 @@ class _CacheBase:
         self._writeback_every = 20
 
     def _emit(self, event_type: CacheEventType, level: EventLevel,
-              message: str, payload: Optional[dict] = None) -&gt; None:
+              message: str, payload: Optional[dict] = None) -> None:
         evt = CacheEvent(level=level, type=event_type, layer=self.LAYER,
                          message=message, payload=payload or {})
         self._last_event_at = evt.timestamp
-        log_msg = f&quot;[{level.value.upper()}] {self.LAYER.value}/{event_type.value}: {message}&quot;
+        log_msg = f"[{level.value.upper()}] {self.LAYER.value}/{event_type.value}: {message}"
         if level == EventLevel.GREEN:
             logger.debug(log_msg)
         elif level == EventLevel.YELLOW:
@@ -173,27 +173,27 @@ class _CacheBase:
             try:
                 self.on_event(evt)
             except Exception as e:
-                logger.error(f&quot;on_event callback failed: {e}&quot;)
+                logger.error(f"on_event callback failed: {e}")
 
-    def _atomic_write(self, path: Path, content: str) -&gt; None:
-        tmp = path.with_suffix(path.suffix + &quot;.tmp&quot;)
-        tmp.write_text(content, encoding=&quot;utf-8&quot;)
+    def _atomic_write(self, path: Path, content: str) -> None:
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(content, encoding="utf-8")
         tmp.replace(path)
 
-    def _atomic_write_npz(self, path: Path, arrays: Dict[str, np.ndarray]) -&gt; None:
+    def _atomic_write_npz(self, path: Path, arrays: Dict[str, np.ndarray]) -> None:
         # FIX-1: numpy принудительно добавляет .npz, если имя на него не кончается.
         # Поэтому temp-имя ДОЛЖНО кончаться на .npz, иначе реальный файл будет
         # *.npz.tmp.npz, а replace() будет искать *.npz.tmp → FileNotFoundError.
-        tmp = path.with_suffix(&quot;.tmp.npz&quot;)
+        tmp = path.with_suffix(".tmp.npz")
         np.savez_compressed(tmp, **arrays)
         tmp.replace(path)
 
 
 class QueryEmbeddingCache(_CacheBase):
     LAYER = CacheLevel.L1_EMBEDDING
-    QUERY_PREFIX = &quot;query: &quot;
+    QUERY_PREFIX = "query: "
 
-    def __init__(self, encoder: SentenceTransformer, cache_dir: Path = Path(&quot;data/cache&quot;),
+    def __init__(self, encoder: SentenceTransformer, cache_dir: Path = Path("data/cache"),
                  max_entries: int = 10_000,
                  on_event: Optional[Callable[[CacheEvent], None]] = None):
         super().__init__(cache_dir=cache_dir, max_entries=max_entries, on_event=on_event)
@@ -202,37 +202,37 @@ class QueryEmbeddingCache(_CacheBase):
         self.model_name = encoder._first_module().auto_model.config._name_or_path
         self._embeddings: Dict[str, np.ndarray] = {}
         self._entries: Dict[str, L1Entry] = {}
-        self._jsonl_path = cache_dir / &quot;l1_entries.jsonl&quot;
-        self._npz_path = cache_dir / &quot;l1_embeddings.npz&quot;
-        self._meta_path = cache_dir / &quot;l1_metadata.json&quot;
+        self._jsonl_path = cache_dir / "l1_entries.jsonl"
+        self._npz_path = cache_dir / "l1_embeddings.npz"
+        self._meta_path = cache_dir / "l1_metadata.json"
         self._load()
 
-    def _hash(self, query: str) -&gt; str:
-        return hashlib.sha256(query.encode(&quot;utf-8&quot;)).hexdigest()[:16]
+    def _hash(self, query: str) -> str:
+        return hashlib.sha256(query.encode("utf-8")).hexdigest()[:16]
 
-    def _check_compat(self) -&gt; bool:
+    def _check_compat(self) -> bool:
         if not self._meta_path.exists():
             return False
         try:
-            meta = json.loads(self._meta_path.read_text(encoding=&quot;utf-8&quot;))
-            return meta.get(&quot;model&quot;) == self.model_name and meta.get(&quot;dim&quot;) == self.dim
+            meta = json.loads(self._meta_path.read_text(encoding="utf-8"))
+            return meta.get("model") == self.model_name and meta.get("dim") == self.dim
         except Exception:
             return False
 
-    def _save_metadata(self) -&gt; None:
-        meta = {&quot;model&quot;: self.model_name, &quot;dim&quot;: self.dim,
-                &quot;layer&quot;: self.LAYER.value, &quot;version&quot;: &quot;2.1&quot;}
+    def _save_metadata(self) -> None:
+        meta = {"model": self.model_name, "dim": self.dim,
+                "layer": self.LAYER.value, "version": "2.1"}
         self._atomic_write(self._meta_path, json.dumps(meta, ensure_ascii=False, indent=2))
 
-    def _load(self) -&gt; None:
+    def _load(self) -> None:
         if not self._check_compat():
             if self._meta_path.exists():
                 self._emit(CacheEventType.MODEL_MISMATCH, EventLevel.YELLOW,
-                           &quot;Embedding model изменилась, L1 кэш сбрасывается&quot;)
+                           "Embedding model изменилась, L1 кэш сбрасывается")
             self._save_metadata()
             return
         if self._jsonl_path.exists():
-            for line in self._jsonl_path.read_text(encoding=&quot;utf-8&quot;).splitlines():
+            for line in self._jsonl_path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line:
                     continue
@@ -240,7 +240,7 @@ class QueryEmbeddingCache(_CacheBase):
                     entry = L1Entry.model_validate_json(line)
                     self._entries[entry.key] = entry
                 except Exception as e:
-                    logger.warning(f&quot;L1: skip bad entry: {e}&quot;)
+                    logger.warning(f"L1: skip bad entry: {e}")
         if self._npz_path.exists():
             try:
                 data = np.load(self._npz_path)
@@ -248,33 +248,33 @@ class QueryEmbeddingCache(_CacheBase):
                     if key in self._entries:
                         self._embeddings[key] = data[key]
             except Exception as e:
-                logger.warning(f&quot;L1: failed to load embeddings: {e}&quot;)
-        valid_keys = set(self._entries) &amp; set(self._embeddings)
+                logger.warning(f"L1: failed to load embeddings: {e}")
+        valid_keys = set(self._entries) & set(self._embeddings)
         self._entries = {k: self._entries[k] for k in valid_keys}
         self._embeddings = {k: self._embeddings[k] for k in valid_keys}
-        logger.info(f&quot;L1 loaded | entries={len(self._entries)}&quot;)
+        logger.info(f"L1 loaded | entries={len(self._entries)}")
 
-    async def encode(self, query: str) -&gt; np.ndarray:
+    async def encode(self, query: str) -> np.ndarray:
         key = self._hash(query)
         if key in self._embeddings:
             entry = self._entries[key]
             entry.hits += 1
             entry.last_accessed_at = time.time()
             self._hits += 1
-            self._emit(CacheEventType.HIT, EventLevel.GREEN, f&quot;L1 hit | query={query[:50]}&quot;,
-                       payload={&quot;key&quot;: key, &quot;hits&quot;: entry.hits})
+            self._emit(CacheEventType.HIT, EventLevel.GREEN, f"L1 hit | query={query[:50]}",
+                       payload={"key": key, "hits": entry.hits})
             self._maybe_writeback()
             return self._embeddings[key]
         self._misses += 1
-        self._emit(CacheEventType.MISS, EventLevel.GREEN, f&quot;L1 miss | query={query[:50]}&quot;)
+        self._emit(CacheEventType.MISS, EventLevel.GREEN, f"L1 miss | query={query[:50]}")
         text = self.QUERY_PREFIX + query
         embedding = await asyncio.to_thread(self.encoder.encode, text,
                                             convert_to_numpy=True, normalize_embeddings=True)
         self._put(key, query, embedding)
         return embedding
 
-    def _put(self, key: str, query: str, embedding: np.ndarray) -&gt; None:
-        if len(self._entries) &gt;= self.max_entries:
+    def _put(self, key: str, query: str, embedding: np.ndarray) -> None:
+        if len(self._entries) >= self.max_entries:
             self._evict(target_size=self.max_entries - 1)
         entry = L1Entry(key=key, query_preview=query[:80])
         self._entries[key] = entry
@@ -282,47 +282,47 @@ class QueryEmbeddingCache(_CacheBase):
         self._writeback_counter += 1
         self._save_entry_append(entry)
         self._save_embeddings()
-        self._emit(CacheEventType.PUT, EventLevel.GREEN, f&quot;L1 put | key={key}&quot;)
+        self._emit(CacheEventType.PUT, EventLevel.GREEN, f"L1 put | key={key}")
 
-    def _save_entry_append(self, entry: L1Entry) -&gt; None:
-        with open(self._jsonl_path, &quot;a&quot;, encoding=&quot;utf-8&quot;) as f:
-            f.write(entry.model_dump_json() + &quot;\n&quot;)
+    def _save_entry_append(self, entry: L1Entry) -> None:
+        with open(self._jsonl_path, "a", encoding="utf-8") as f:
+            f.write(entry.model_dump_json() + "\n")
 
-    def _save_embeddings(self) -&gt; None:
+    def _save_embeddings(self) -> None:
         if not self._embeddings:
             return
         self._atomic_write_npz(self._npz_path, self._embeddings)
 
-    def _maybe_writeback(self) -&gt; None:
+    def _maybe_writeback(self) -> None:
         self._writeback_counter += 1
-        if self._writeback_counter &gt;= self._writeback_every:
+        if self._writeback_counter >= self._writeback_every:
             self._writeback_counter = 0
             self._full_rewrite()
 
-    def _full_rewrite(self) -&gt; None:
-        content = &quot;\n&quot;.join(e.model_dump_json() for e in self._entries.values()) + &quot;\n&quot;
+    def _full_rewrite(self) -> None:
+        content = "\n".join(e.model_dump_json() for e in self._entries.values()) + "\n"
         self._atomic_write(self._jsonl_path, content)
 
-    def _evict(self, target_size: int) -&gt; None:
-        if len(self._entries) &lt;= target_size:
+    def _evict(self, target_size: int) -> None:
+        if len(self._entries) <= target_size:
             return
         sorted_by_lru = sorted(self._entries.items(), key=lambda kv: kv[1].last_accessed_at)
         n_remove = len(self._entries) - target_size
         for key, _ in sorted_by_lru[:n_remove]:
             del self._entries[key]
             self._embeddings.pop(key, None)
-        self._emit(CacheEventType.EVICTED, EventLevel.GREEN, f&quot;L1 evicted {n_remove} entries&quot;)
+        self._emit(CacheEventType.EVICTED, EventLevel.GREEN, f"L1 evicted {n_remove} entries")
         self._full_rewrite()
         self._save_embeddings()
 
-    def stats(self) -&gt; CacheStats:
+    def stats(self) -> CacheStats:
         total = self._hits + self._misses
         return CacheStats(layer=self.LAYER, entries=len(self._entries), hits=self._hits,
                           misses=self._misses, hit_rate=round(self._hits / total, 3) if total else 0.0,
                           last_event_at_iso=(datetime.fromtimestamp(self._last_event_at, tz=timezone.utc).isoformat()
                                              if self._last_event_at else None))
 
-    def close(self) -&gt; None:
+    def close(self) -> None:
         self._full_rewrite()
         self._save_embeddings()
         self._save_metadata()
@@ -331,7 +331,7 @@ class QueryEmbeddingCache(_CacheBase):
 class RAGResultsCache(_CacheBase):
     LAYER = CacheLevel.L2_RAG
 
-    def __init__(self, l1_cache: QueryEmbeddingCache, cache_dir: Path = Path(&quot;data/cache&quot;),
+    def __init__(self, l1_cache: QueryEmbeddingCache, cache_dir: Path = Path("data/cache"),
                  max_entries: int = 5_000, similarity_threshold: float = 0.92,
                  default_ttl: float = 86400.0 * 7,
                  on_event: Optional[Callable[[CacheEvent], None]] = None):
@@ -345,23 +345,23 @@ class RAGResultsCache(_CacheBase):
         self._matrix_keys: List[str] = []
         self._matrix: Optional[np.ndarray] = None
         self._matrix_dirty = True
-        self._jsonl_path = cache_dir / &quot;l2_entries.jsonl&quot;
-        self._npz_path = cache_dir / &quot;l2_embeddings.npz&quot;
+        self._jsonl_path = cache_dir / "l2_entries.jsonl"
+        self._npz_path = cache_dir / "l2_embeddings.npz"
         self._load()
 
-    def _hash(self, query: str) -&gt; str:
-        return hashlib.sha256(query.encode(&quot;utf-8&quot;)).hexdigest()[:16]
+    def _hash(self, query: str) -> str:
+        return hashlib.sha256(query.encode("utf-8")).hexdigest()[:16]
 
-    def _is_expired(self, entry: L2Entry) -&gt; bool:
-        return time.time() - entry.timestamp &gt; entry.ttl
+    def _is_expired(self, entry: L2Entry) -> bool:
+        return time.time() - entry.timestamp > entry.ttl
 
-    def _rebuild_reverse_index(self) -&gt; None:
+    def _rebuild_reverse_index(self) -> None:
         self._note_to_keys.clear()
         for key, entry in self._entries.items():
             for note in entry.source_notes:
                 self._note_to_keys.setdefault(note, set()).add(key)
 
-    def _rebuild_matrix(self) -&gt; None:
+    def _rebuild_matrix(self) -> None:
         if not self._embeddings:
             self._matrix_keys = []
             self._matrix = None
@@ -370,9 +370,9 @@ class RAGResultsCache(_CacheBase):
             self._matrix = np.array([self._embeddings[k] for k in self._matrix_keys])
         self._matrix_dirty = False
 
-    def _load(self) -&gt; None:
+    def _load(self) -> None:
         if self._jsonl_path.exists():
-            for line in self._jsonl_path.read_text(encoding=&quot;utf-8&quot;).splitlines():
+            for line in self._jsonl_path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line:
                     continue
@@ -381,7 +381,7 @@ class RAGResultsCache(_CacheBase):
                     if not self._is_expired(entry):
                         self._entries[entry.key] = entry
                 except Exception as e:
-                    logger.warning(f&quot;L2: skip bad entry: {e}&quot;)
+                    logger.warning(f"L2: skip bad entry: {e}")
         if self._npz_path.exists():
             try:
                 data = np.load(self._npz_path)
@@ -389,15 +389,15 @@ class RAGResultsCache(_CacheBase):
                     if key in self._entries:
                         self._embeddings[key] = data[key]
             except Exception as e:
-                logger.warning(f&quot;L2: failed to load embeddings: {e}&quot;)
-        valid_keys = set(self._entries) &amp; set(self._embeddings)
+                logger.warning(f"L2: failed to load embeddings: {e}")
+        valid_keys = set(self._entries) & set(self._embeddings)
         self._entries = {k: self._entries[k] for k in valid_keys}
         self._embeddings = {k: self._embeddings[k] for k in valid_keys}
         self._rebuild_reverse_index()
         self._matrix_dirty = True
-        logger.info(f&quot;L2 loaded | entries={len(self._entries)}&quot;)
+        logger.info(f"L2 loaded | entries={len(self._entries)}")
 
-    async def get(self, query: str) -&gt; Optional[L2Entry]:
+    async def get(self, query: str) -> Optional[L2Entry]:
         if not self._entries:
             self._misses += 1
             return None
@@ -410,7 +410,7 @@ class RAGResultsCache(_CacheBase):
         scores = self._matrix @ query_emb
         best_idx = int(np.argmax(scores))
         best_score = float(scores[best_idx])
-        if best_score &gt;= self.threshold:
+        if best_score >= self.threshold:
             key = self._matrix_keys[best_idx]
             entry = self._entries[key]
             if self._is_expired(entry):
@@ -420,21 +420,21 @@ class RAGResultsCache(_CacheBase):
             entry.hits += 1
             entry.last_accessed_at = time.time()
             self._hits += 1
-            self._emit(CacheEventType.HIT, EventLevel.GREEN, f&quot;L2 hit | score={best_score:.3f}&quot;,
-                       payload={&quot;key&quot;: key, &quot;score&quot;: best_score})
+            self._emit(CacheEventType.HIT, EventLevel.GREEN, f"L2 hit | score={best_score:.3f}",
+                       payload={"key": key, "score": best_score})
             return entry
         self._misses += 1
-        self._emit(CacheEventType.MISS, EventLevel.GREEN, f&quot;L2 miss | best_score={best_score:.3f}&quot;)
+        self._emit(CacheEventType.MISS, EventLevel.GREEN, f"L2 miss | best_score={best_score:.3f}")
         return None
 
     async def put(self, query: str, chunks: List[Dict], source_notes: List[str],
-                  verdict: SecurityVerdict, ttl: Optional[float] = None) -&gt; Optional[str]:
+                  verdict: SecurityVerdict, ttl: Optional[float] = None) -> Optional[str]:
         if verdict != SecurityVerdict.GREEN:
             return None
         key = self._hash(query)
         if key in self._entries and not self._is_expired(self._entries[key]):
             return key
-        if len(self._entries) &gt;= self.max_entries:
+        if len(self._entries) >= self.max_entries:
             self._evict(target_size=self.max_entries - 1)
         embedding = await self.l1.encode(query)
         entry = L2Entry(key=key, query_preview=query[:80], chunks=chunks,
@@ -446,25 +446,25 @@ class RAGResultsCache(_CacheBase):
             self._note_to_keys.setdefault(note, set()).add(key)
         self._save_entry_append(entry)
         self._save_embeddings()
-        self._emit(CacheEventType.PUT, EventLevel.GREEN, f&quot;L2 put | key={key}&quot;)
+        self._emit(CacheEventType.PUT, EventLevel.GREEN, f"L2 put | key={key}")
         return key
 
-    def invalidate_by_note(self, note_path: str) -&gt; int:
+    def invalidate_by_note(self, note_path: str) -> int:
         keys = self._note_to_keys.pop(note_path, set())
         for key in keys:
             self._remove(key, skip_index=True)
         if keys:
             self._full_rewrite()
             self._save_embeddings()
-            level = EventLevel.YELLOW if len(keys) &gt; 500 else EventLevel.GREEN
-            event_type = (CacheEventType.MASS_INVALIDATION if len(keys) &gt; 500
+            level = EventLevel.YELLOW if len(keys) > 500 else EventLevel.GREEN
+            event_type = (CacheEventType.MASS_INVALIDATION if len(keys) > 500
                           else CacheEventType.INVALIDATED_BY_NOTE)
             self._emit(event_type, level,
-                       f&quot;L2 invalidated {len(keys)} entries for note {note_path}&quot;,
-                       payload={&quot;note&quot;: note_path, &quot;count&quot;: len(keys)})
+                       f"L2 invalidated {len(keys)} entries for note {note_path}",
+                       payload={"note": note_path, "count": len(keys)})
         return len(keys)
 
-    def _remove(self, key: str, skip_index: bool = False) -&gt; None:
+    def _remove(self, key: str, skip_index: bool = False) -> None:
         entry = self._entries.pop(key, None)
         self._embeddings.pop(key, None)
         self._matrix_dirty = True
@@ -475,11 +475,11 @@ class RAGResultsCache(_CacheBase):
                     if not self._note_to_keys[note]:
                         del self._note_to_keys[note]
 
-    def _evict(self, target_size: int) -&gt; None:
+    def _evict(self, target_size: int) -> None:
         expired = [k for k, e in self._entries.items() if self._is_expired(e)]
         for k in expired:
             self._remove(k)
-        if len(self._entries) &gt; target_size:
+        if len(self._entries) > target_size:
             sorted_by_lru = sorted(self._entries.items(), key=lambda kv: kv[1].last_accessed_at)
             n_remove = len(self._entries) - target_size
             for key, _ in sorted_by_lru[:n_remove]:
@@ -487,29 +487,29 @@ class RAGResultsCache(_CacheBase):
         self._full_rewrite()
         self._save_embeddings()
 
-    def _save_entry_append(self, entry: L2Entry) -&gt; None:
-        with open(self._jsonl_path, &quot;a&quot;, encoding=&quot;utf-8&quot;) as f:
-            f.write(entry.model_dump_json() + &quot;\n&quot;)
+    def _save_entry_append(self, entry: L2Entry) -> None:
+        with open(self._jsonl_path, "a", encoding="utf-8") as f:
+            f.write(entry.model_dump_json() + "\n")
 
-    def _save_embeddings(self) -&gt; None:
+    def _save_embeddings(self) -> None:
         if not self._embeddings:
             return
         self._atomic_write_npz(self._npz_path, self._embeddings)
 
-    def _full_rewrite(self) -&gt; None:
-        content = &quot;\n&quot;.join(e.model_dump_json() for e in self._entries.values())
+    def _full_rewrite(self) -> None:
+        content = "\n".join(e.model_dump_json() for e in self._entries.values())
         if content:
-            content += &quot;\n&quot;
+            content += "\n"
         self._atomic_write(self._jsonl_path, content)
 
-    def stats(self) -&gt; CacheStats:
+    def stats(self) -> CacheStats:
         total = self._hits + self._misses
         return CacheStats(layer=self.LAYER, entries=len(self._entries), hits=self._hits,
                           misses=self._misses, hit_rate=round(self._hits / total, 3) if total else 0.0,
                           last_event_at_iso=(datetime.fromtimestamp(self._last_event_at, tz=timezone.utc).isoformat()
                                              if self._last_event_at else None))
 
-    def close(self) -&gt; None:
+    def close(self) -> None:
         self._full_rewrite()
         self._save_embeddings()
 
@@ -517,27 +517,27 @@ class RAGResultsCache(_CacheBase):
 class LLMResponseCache(_CacheBase):
     LAYER = CacheLevel.L3_LLM
 
-    def __init__(self, cache_dir: Path = Path(&quot;data/cache&quot;), max_entries: int = 2_000,
-                 default_ttl: float = 86400.0, prompt_version: str = &quot;v1&quot;,
+    def __init__(self, cache_dir: Path = Path("data/cache"), max_entries: int = 2_000,
+                 default_ttl: float = 86400.0, prompt_version: str = "v1",
                  on_event: Optional[Callable[[CacheEvent], None]] = None):
         super().__init__(cache_dir=cache_dir, max_entries=max_entries, on_event=on_event)
         self.default_ttl = default_ttl
         self.prompt_version = prompt_version
         self._entries: Dict[str, L3Entry] = {}
         self._note_to_keys: Dict[str, Set[str]] = {}
-        self._jsonl_path = cache_dir / &quot;l3_entries.jsonl&quot;
+        self._jsonl_path = cache_dir / "l3_entries.jsonl"
         self._load()
 
-    def _make_key(self, query: str, context_hash: str, model: str) -&gt; str:
-        material = f&quot;{self.prompt_version}|{model}|{context_hash}|{query}&quot;
-        return hashlib.sha256(material.encode(&quot;utf-8&quot;)).hexdigest()[:16]
+    def _make_key(self, query: str, context_hash: str, model: str) -> str:
+        material = f"{self.prompt_version}|{model}|{context_hash}|{query}"
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
-    def _is_expired(self, entry: L3Entry) -&gt; bool:
-        return time.time() - entry.timestamp &gt; entry.ttl
+    def _is_expired(self, entry: L3Entry) -> bool:
+        return time.time() - entry.timestamp > entry.ttl
 
-    def _load(self) -&gt; None:
+    def _load(self) -> None:
         if self._jsonl_path.exists():
-            for line in self._jsonl_path.read_text(encoding=&quot;utf-8&quot;).splitlines():
+            for line in self._jsonl_path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line:
                     continue
@@ -548,18 +548,18 @@ class LLMResponseCache(_CacheBase):
                     if not self._is_expired(entry):
                         self._entries[entry.key] = entry
                 except Exception as e:
-                    logger.warning(f&quot;L3: skip bad entry: {e}&quot;)
+                    logger.warning(f"L3: skip bad entry: {e}")
         for key, entry in self._entries.items():
             for note in entry.source_notes:
                 self._note_to_keys.setdefault(note, set()).add(key)
-        logger.info(f&quot;L3 loaded | entries={len(self._entries)}&quot;)
+        logger.info(f"L3 loaded | entries={len(self._entries)}")
 
-    def get(self, query: str, context_hash: str, model: str) -&gt; Optional[L3Entry]:
+    def get(self, query: str, context_hash: str, model: str) -> Optional[L3Entry]:
         key = self._make_key(query, context_hash, model)
         entry = self._entries.get(key)
         if entry is None:
             self._misses += 1
-            self._emit(CacheEventType.MISS, EventLevel.GREEN, f&quot;L3 miss | query={query[:50]}&quot;)
+            self._emit(CacheEventType.MISS, EventLevel.GREEN, f"L3 miss | query={query[:50]}")
             return None
         if self._is_expired(entry):
             self._remove(key)
@@ -568,19 +568,19 @@ class LLMResponseCache(_CacheBase):
         entry.hits += 1
         entry.last_accessed_at = time.time()
         self._hits += 1
-        self._emit(CacheEventType.HIT, EventLevel.GREEN, f&quot;L3 hit | query={query[:50]}&quot;,
-                   payload={&quot;key&quot;: key, &quot;hits&quot;: entry.hits})
+        self._emit(CacheEventType.HIT, EventLevel.GREEN, f"L3 hit | query={query[:50]}",
+                   payload={"key": key, "hits": entry.hits})
         return entry
 
     def put(self, query: str, response: str, context_hash: str, model: str,
             source_notes: List[str], verdict: SecurityVerdict,
-            ttl: Optional[float] = None) -&gt; Optional[str]:
+            ttl: Optional[float] = None) -> Optional[str]:
         if verdict != SecurityVerdict.GREEN:
             return None
         key = self._make_key(query, context_hash, model)
         if key in self._entries and not self._is_expired(self._entries[key]):
             return key
-        if len(self._entries) &gt;= self.max_entries:
+        if len(self._entries) >= self.max_entries:
             self._evict(target_size=self.max_entries - 1)
         entry = L3Entry(key=key, query_preview=query[:80], response=response, model=model,
                         context_hash=context_hash, prompt_version=self.prompt_version,
@@ -589,24 +589,24 @@ class LLMResponseCache(_CacheBase):
         for note in source_notes:
             self._note_to_keys.setdefault(note, set()).add(key)
         self._save_entry_append(entry)
-        self._emit(CacheEventType.PUT, EventLevel.GREEN, f&quot;L3 put | model={model}&quot;)
+        self._emit(CacheEventType.PUT, EventLevel.GREEN, f"L3 put | model={model}")
         return key
 
-    def invalidate_by_note(self, note_path: str) -&gt; int:
+    def invalidate_by_note(self, note_path: str) -> int:
         keys = self._note_to_keys.pop(note_path, set())
         for key in keys:
             self._remove(key, skip_index=True)
         if keys:
             self._full_rewrite()
-            level = EventLevel.YELLOW if len(keys) &gt; 500 else EventLevel.GREEN
-            event_type = (CacheEventType.MASS_INVALIDATION if len(keys) &gt; 500
+            level = EventLevel.YELLOW if len(keys) > 500 else EventLevel.GREEN
+            event_type = (CacheEventType.MASS_INVALIDATION if len(keys) > 500
                           else CacheEventType.INVALIDATED_BY_NOTE)
             self._emit(event_type, level,
-                       f&quot;L3 invalidated {len(keys)} entries for note {note_path}&quot;,
-                       payload={&quot;note&quot;: note_path, &quot;count&quot;: len(keys)})
+                       f"L3 invalidated {len(keys)} entries for note {note_path}",
+                       payload={"note": note_path, "count": len(keys)})
         return len(keys)
 
-    def _remove(self, key: str, skip_index: bool = False) -&gt; None:
+    def _remove(self, key: str, skip_index: bool = False) -> None:
         entry = self._entries.pop(key, None)
         if entry and not skip_index:
             for note in entry.source_notes:
@@ -615,60 +615,60 @@ class LLMResponseCache(_CacheBase):
                     if not self._note_to_keys[note]:
                         del self._note_to_keys[note]
 
-    def _evict(self, target_size: int) -&gt; None:
+    def _evict(self, target_size: int) -> None:
         expired = [k for k, e in self._entries.items() if self._is_expired(e)]
         for k in expired:
             self._remove(k)
-        if len(self._entries) &gt; target_size:
+        if len(self._entries) > target_size:
             sorted_by_lru = sorted(self._entries.items(), key=lambda kv: kv[1].last_accessed_at)
             n_remove = len(self._entries) - target_size
             for key, _ in sorted_by_lru[:n_remove]:
                 self._remove(key)
         self._full_rewrite()
 
-    def _save_entry_append(self, entry: L3Entry) -&gt; None:
-        with open(self._jsonl_path, &quot;a&quot;, encoding=&quot;utf-8&quot;) as f:
-            f.write(entry.model_dump_json() + &quot;\n&quot;)
+    def _save_entry_append(self, entry: L3Entry) -> None:
+        with open(self._jsonl_path, "a", encoding="utf-8") as f:
+            f.write(entry.model_dump_json() + "\n")
 
-    def _full_rewrite(self) -&gt; None:
-        content = &quot;\n&quot;.join(e.model_dump_json() for e in self._entries.values())
+    def _full_rewrite(self) -> None:
+        content = "\n".join(e.model_dump_json() for e in self._entries.values())
         if content:
-            content += &quot;\n&quot;
+            content += "\n"
         self._atomic_write(self._jsonl_path, content)
 
-    def stats(self) -&gt; CacheStats:
+    def stats(self) -> CacheStats:
         total = self._hits + self._misses
         return CacheStats(layer=self.LAYER, entries=len(self._entries), hits=self._hits,
                           misses=self._misses, hit_rate=round(self._hits / total, 3) if total else 0.0,
                           last_event_at_iso=(datetime.fromtimestamp(self._last_event_at, tz=timezone.utc).isoformat()
                                              if self._last_event_at else None))
 
-    def close(self) -&gt; None:
+    def close(self) -> None:
         self._full_rewrite()
 
 
 @dataclass
 class _SlidingWindow:
-    &quot;&quot;&quot;Кольцевой буфер timestamp&#x27;ов для подсчёта событий в плавающем окне.&quot;&quot;&quot;
+    """Кольцевой буфер timestamp'ов для подсчёта событий в плавающем окне."""
     window_seconds: float
     _buckets: deque = field(default_factory=deque)
 
-    def add(self, ts: float) -&gt; None:
+    def add(self, ts: float) -> None:
         self._buckets.append(ts)
 
-    def count(self, now: float) -&gt; int:
+    def count(self, now: float) -> int:
         cutoff = now - self.window_seconds
-        while self._buckets and self._buckets[0] &lt; cutoff:
+        while self._buckets and self._buckets[0] < cutoff:
             self._buckets.popleft()
         return len(self._buckets)
 
 
 class AnomalyDetector:
-    &quot;&quot;&quot;
+    """
     Детектирует аномалии кэша (только эмитит события, никогда не блокирует):
       - GROWTH_ANOMALY  — слишком быстрый рост (потенциальный cache flood)
       - MISS_RATE_HIGH  — высокий miss rate (атака уникальными запросами / деградация)
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, growth_threshold_per_min: int = 60,
                  miss_rate_threshold: float = 0.90,
@@ -684,87 +684,87 @@ class AnomalyDetector:
         self._last_check_time = time.time()
         self._check_interval = 30.0
 
-    def record_put(self) -&gt; None:
+    def record_put(self) -> None:
         self._put_timestamps.add(time.time())
         self._maybe_check()
 
-    def record_hit(self) -&gt; None:
+    def record_hit(self) -> None:
         self._hit_timestamps.add(time.time())
         self._maybe_check()
 
-    def record_miss(self) -&gt; None:
+    def record_miss(self) -> None:
         self._miss_timestamps.add(time.time())
         self._maybe_check()
 
-    def _maybe_check(self) -&gt; None:
+    def _maybe_check(self) -> None:
         now = time.time()
-        if now - self._last_check_time &lt; self._check_interval:
+        if now - self._last_check_time < self._check_interval:
             return
         self._last_check_time = now
         self._check(now)
 
-    def _check(self, now: float) -&gt; None:
+    def _check(self, now: float) -> None:
         if self.on_event is None:
             return
         puts_in_window = self._put_timestamps.count(now)
-        # FIX-3: на коротком окне (&lt; 60с) нормировка-к-минуте экстраполирует редкие
+        # FIX-3: на коротком окне (< 60с) нормировка-к-минуте экстраполирует редкие
         # события в мнимый флуд (10 puts за 0.5с → 1200/мин). Поэтому:
         #   окно ≥ 60с → сравниваем нормированный к минуте rate с порогом;
-        #   окно &lt; 60с → сравниваем абсолютное число puts в окне с порогом.
-        if self.window_seconds &gt;= 60.0:
+        #   окно < 60с → сравниваем абсолютное число puts в окне с порогом.
+        if self.window_seconds >= 60.0:
             growth_metric = puts_in_window / (self.window_seconds / 60.0)
         else:
             growth_metric = puts_in_window
-        if growth_metric &gt; self.growth_threshold:
+        if growth_metric > self.growth_threshold:
             self.on_event(CacheEvent(
                 level=EventLevel.YELLOW, type=CacheEventType.GROWTH_ANOMALY,
                 layer=CacheLevel.L3_LLM,
-                message=f&quot;Cache growth anomaly: {growth_metric:.0f} &quot;
-                        f&quot;(threshold={self.growth_threshold}, window={self.window_seconds}s, &quot;
-                        f&quot;puts={puts_in_window})&quot;,
-                payload={&quot;growth_metric&quot;: round(growth_metric, 1),
-                         &quot;threshold&quot;: self.growth_threshold,
-                         &quot;window_seconds&quot;: self.window_seconds,
-                         &quot;total_puts&quot;: puts_in_window}))
+                message=f"Cache growth anomaly: {growth_metric:.0f} "
+                        f"(threshold={self.growth_threshold}, window={self.window_seconds}s, "
+                        f"puts={puts_in_window})",
+                payload={"growth_metric": round(growth_metric, 1),
+                         "threshold": self.growth_threshold,
+                         "window_seconds": self.window_seconds,
+                         "total_puts": puts_in_window}))
         hits = self._hit_timestamps.count(now)
         misses = self._miss_timestamps.count(now)
         total = hits + misses
-        if total &gt;= 10:
+        if total >= 10:
             miss_rate = misses / total
-            if miss_rate &gt; self.miss_rate_threshold:
+            if miss_rate > self.miss_rate_threshold:
                 self.on_event(CacheEvent(
                     level=EventLevel.YELLOW, type=CacheEventType.MISS_RATE_HIGH,
                     layer=CacheLevel.L3_LLM,
-                    message=f&quot;High miss rate: {miss_rate:.1%} (threshold=&quot;
-                            f&quot;{self.miss_rate_threshold:.0%}, total={total})&quot;,
-                    payload={&quot;miss_rate&quot;: round(miss_rate, 3), &quot;threshold&quot;: self.miss_rate_threshold,
-                             &quot;hits&quot;: hits, &quot;misses&quot;: misses, &quot;total&quot;: total}))
+                    message=f"High miss rate: {miss_rate:.1%} (threshold="
+                            f"{self.miss_rate_threshold:.0%}, total={total})",
+                    payload={"miss_rate": round(miss_rate, 3), "threshold": self.miss_rate_threshold,
+                             "hits": hits, "misses": misses, "total": total}))
 
-    def stats_dict(self) -&gt; dict:
+    def stats_dict(self) -> dict:
         now = time.time()
         hits = self._hit_timestamps.count(now)
         misses = self._miss_timestamps.count(now)
         total = hits + misses
-        return {&quot;window_seconds&quot;: self.window_seconds, &quot;hits_in_window&quot;: hits,
-                &quot;misses_in_window&quot;: misses,
-                &quot;miss_rate&quot;: round(misses / total, 3) if total else 0.0,
-                &quot;puts_in_window&quot;: self._put_timestamps.count(now)}
+        return {"window_seconds": self.window_seconds, "hits_in_window": hits,
+                "misses_in_window": misses,
+                "miss_rate": round(misses / total, 3) if total else 0.0,
+                "puts_in_window": self._put_timestamps.count(now)}
 
 
 class CacheLayer:
-    &quot;&quot;&quot;
+    """
     Фасад трёхслойного кэша: связывает L1→L2→L3, lazy-load encoder,
     каскадную инвалидацию L2→L3, verdict-фильтр, anomaly detection.
-    &quot;&quot;&quot;
+    """
 
-    DEFAULT_MODEL = &quot;intfloat/multilingual-e5-base&quot;
+    DEFAULT_MODEL = "intfloat/multilingual-e5-base"
 
-    def __init__(self, cache_dir: Path = Path(&quot;data/cache&quot;), *,
+    def __init__(self, cache_dir: Path = Path("data/cache"), *,
                  model_name: str = DEFAULT_MODEL,
                  l1_max_entries: int = 10_000, l2_max_entries: int = 5_000,
                  l3_max_entries: int = 2_000, l2_similarity_threshold: float = 0.92,
                  l2_default_ttl: float = 86400.0 * 7, l3_default_ttl: float = 86400.0,
-                 prompt_version: str = &quot;v1&quot;, anomaly_growth_threshold: int = 60,
+                 prompt_version: str = "v1", anomaly_growth_threshold: int = 60,
                  anomaly_miss_rate_threshold: float = 0.90,
                  anomaly_window_seconds: float = 300.0,
                  on_event: Optional[Callable[[CacheEvent], None]] = None):
@@ -776,7 +776,7 @@ class CacheLayer:
                                        miss_rate_threshold=anomaly_miss_rate_threshold,
                                        window_seconds=anomaly_window_seconds, on_event=on_event)
 
-        def _wrapped_on_event(event: CacheEvent) -&gt; None:
+        def _wrapped_on_event(event: CacheEvent) -> None:
             if event.type == CacheEventType.HIT:
                 self.anomaly.record_hit()
             elif event.type == CacheEventType.MISS:
@@ -787,6 +787,103 @@ class CacheLayer:
                 on_event(event)
 
         self._on_event = _wrapped_on_event
-        self._l1_max = l
+        self._l1_max = l1_max_entries
+        self._l2_max = l2_max_entries
+        self._l3_max = l3_max_entries
+        self._l2_similarity = l2_similarity_threshold
+        self._l2_ttl = l2_default_ttl
+        self._l3_ttl = l3_default_ttl
+        self._prompt_version = prompt_version
 
- [...]
+        self._l1: Optional[QueryEmbeddingCache] = None
+        self._l2: Optional[RAGResultsCache] = None
+        self._l3: Optional[LLMResponseCache] = None
+        self._ready = False
+
+    @property
+    def l1_max_entries(self) -> int:
+        return self._l1_max
+
+    @property
+    def is_ready(self) -> bool:
+        return self._ready
+
+    def warmup(self) -> None:
+        if self._ready:
+            return
+        self._encoder = SentenceTransformer(self._model_name)
+        self._l1 = QueryEmbeddingCache(
+            encoder=self._encoder, cache_dir=self.cache_dir,
+            max_entries=self._l1_max, on_event=self._on_event)
+        self._l2 = RAGResultsCache(
+            l1_cache=self._l1, cache_dir=self.cache_dir,
+            max_entries=self._l2_max, similarity_threshold=self._l2_similarity,
+            default_ttl=self._l2_ttl, on_event=self._on_event)
+        self._l3 = LLMResponseCache(
+            cache_dir=self.cache_dir, max_entries=self._l3_max,
+            default_ttl=self._l3_ttl, prompt_version=self._prompt_version,
+            on_event=self._on_event)
+        self._ready = True
+        logger.info("CacheLayer warmup complete")
+
+    def _ensure_ready(self) -> None:
+        if not self._ready:
+            self.warmup()
+
+    async def encode(self, query: str) -> np.ndarray:
+        self._ensure_ready()
+        assert self._l1 is not None
+        return await self._l1.encode(query)
+
+    async def get_l2(self, query: str) -> Optional[L2Entry]:
+        self._ensure_ready()
+        assert self._l2 is not None
+        return await self._l2.get(query)
+
+    def get_l3(self, query: str, context_hash: str, model: str) -> Optional[L3Entry]:
+        self._ensure_ready()
+        assert self._l3 is not None
+        return self._l3.get(query, context_hash, model)
+
+    async def put_l2(self, query: str, chunks: List[Dict], source_notes: List[str],
+                     verdict: SecurityVerdict, ttl: Optional[float] = None) -> Optional[str]:
+        self._ensure_ready()
+        assert self._l2 is not None
+        return await self._l2.put(query, chunks, source_notes, verdict, ttl)
+
+    def put_l3(self, query: str, response: str, context_hash: str, model: str,
+               source_notes: List[str], verdict: SecurityVerdict,
+               ttl: Optional[float] = None) -> Optional[str]:
+        self._ensure_ready()
+        assert self._l3 is not None
+        return self._l3.put(query, response, context_hash, model, source_notes, verdict, ttl)
+
+    def invalidate_by_note(self, note_path: str) -> dict:
+        self._ensure_ready()
+        assert self._l2 is not None
+        assert self._l3 is not None
+        l2_removed = self._l2.invalidate_by_note(note_path)
+        l3_removed = self._l3.invalidate_by_note(note_path)
+        return {"l2_removed": l2_removed, "l3_removed": l3_removed}
+
+    def stats(self) -> dict:
+        self._ensure_ready()
+        assert self._l1 is not None
+        assert self._l2 is not None
+        assert self._l3 is not None
+        return {
+            "l1": self._l1.stats().model_dump(),
+            "l2": self._l2.stats().model_dump(),
+            "l3": self._l3.stats().model_dump(),
+            "anomaly": self.anomaly.stats_dict(),
+        }
+
+    def close(self) -> None:
+        if self._l1 is not None:
+            self._l1.close()
+        if self._l2 is not None:
+            self._l2.close()
+        if self._l3 is not None:
+            self._l3.close()
+        self._ready = False
+        logger.info("CacheLayer closed")

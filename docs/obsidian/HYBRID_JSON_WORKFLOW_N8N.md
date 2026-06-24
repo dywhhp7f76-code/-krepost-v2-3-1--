@@ -6,117 +6,117 @@
 
 {
 
-  &quot;name&quot;: &quot;Крепость - Obsidian AI Agent&quot;,
+  "name": "Крепость - Obsidian AI Agent",
 
-  &quot;nodes&quot;: [
+  "nodes": [
 
     {
 
-      &quot;name&quot;: &quot;Webhook&quot;,
+      "name": "Webhook",
 
-      &quot;type&quot;: &quot;n8n-nodes-base.webhook&quot;,
+      "type": "n8n-nodes-base.webhook",
 
-      &quot;parameters&quot;: {
+      "parameters": {
 
-        &quot;httpMethod&quot;: &quot;POST&quot;,
+        "httpMethod": "POST",
 
-        &quot;path&quot;: &quot;krepost&quot;,
+        "path": "krepost",
 
-        &quot;responseMode&quot;: &quot;onReceived&quot;
+        "responseMode": "onReceived"
 
       },
 
-      &quot;position&quot;: [250, 300]
+      "position": [250, 300]
 
     },
 
     {
 
-      &quot;name&quot;: &quot;любой API&quot;,
+      "name": "любой API",
 
-      &quot;type&quot;: &quot;n8n-nodes-base.httpRequest&quot;,
+      "type": "n8n-nodes-base.httpRequest",
 
-      &quot;parameters&quot;: {
+      "parameters": {
 
-        &quot;url&quot;: &quot;https://api.ai/v1/chat/completions&quot;,
+        "url": "https://api.ai/v1/chat/completions",
 
-        &quot;method&quot;: &quot;POST&quot;,
+        "method": "POST",
 
-        &quot;jsonParameters&quot;: true,
+        "jsonParameters": true,
 
-        &quot;options&quot;: {},
+        "options": {},
 
-        &quot;headerParametersJson&quot;: &quot;{\&quot;Authorization\&quot;: \&quot;Bearer {{ $env.XAI_API_KEY }}\&quot;}&quot;,
+        "headerParametersJson": "{\"Authorization\": \"Bearer {{ $env.XAI_API_KEY }}\"}",
 
-        &quot;bodyParametersJson&quot;: &quot;{\&quot;model\&quot;: \&quot;любой \&quot;, \&quot;messages\&quot;: [{\&quot;role\&quot;: \&quot;system\&quot;, \&quot;content\&quot;: \&quot;{{ $json.system_prompt }}\&quot;}, {\&quot;role\&quot;: \&quot;user\&quot;, \&quot;content\&quot;: \&quot;{{ $json.user_query }}\&quot;}], \&quot;temperature\&quot;: 0.7}&quot;
+        "bodyParametersJson": "{\"model\": \"любой \", \"messages\": [{\"role\": \"system\", \"content\": \"{{ $json.system_prompt }}\"}, {\"role\": \"user\", \"content\": \"{{ $json.user_query }}\"}], \"temperature\": 0.7}"
 
       },
 
-      &quot;position&quot;: [450, 300]
+      "position": [450, 300]
 
     },
 
     {
 
-      &quot;name&quot;: &quot;Save to iCloud&quot;,
+      "name": "Save to iCloud",
 
-      &quot;type&quot;: &quot;n8n-nodes-base.httpRequest&quot;,
+      "type": "n8n-nodes-base.httpRequest",
 
-      &quot;parameters&quot;: {
+      "parameters": {
 
-        &quot;url&quot;: &quot;https://webdav.icloud.com&quot;,
+        "url": "https://webdav.icloud.com",
 
-        &quot;method&quot;: &quot;PUT&quot;,
+        "method": "PUT",
 
-        &quot;body&quot;: &quot;={{ $json.answer }}&quot;,
+        "body": "={{ $json.answer }}",
 
-        &quot;options&quot;: {
+        "options": {
 
-          &quot;path&quot;: &quot;/{{ $json.filename }}&quot;
+          "path": "/{{ $json.filename }}"
 
         }
 
       },
 
-      &quot;position&quot;: [650, 300]
+      "position": [650, 300]
 
     },
 
     {
 
-      &quot;name&quot;: &quot;Response&quot;,
+      "name": "Response",
 
-      &quot;type&quot;: &quot;n8n-nodes-base.respondToWebhook&quot;,
+      "type": "n8n-nodes-base.respondToWebhook",
 
-      &quot;parameters&quot;: {
+      "parameters": {
 
-        &quot;responseCode&quot;: 200,
+        "responseCode": 200,
 
-        &quot;responseBody&quot;: &quot;={{ $json }}&quot;
+        "responseBody": "={{ $json }}"
 
       },
 
-      &quot;position&quot;: [850, 300]
+      "position": [850, 300]
 
     }
 
   ],
 
-  &quot;connections&quot;: {
+  "connections": {
 
-    &quot;Webhook&quot;: {
+    "Webhook": {
 
-      &quot;main&quot;: [
+      "main": [
 
         [
 
           {
 
-            &quot;node&quot;: &quot;API&quot;,
+            "node": "API",
 
-            &quot;type&quot;: &quot;main&quot;,
+            "type": "main",
 
-            &quot;index&quot;: 0
+            "index": 0
 
           }
 
@@ -126,19 +126,19 @@
 
     },
 
-    &quot;Grok API&quot;: {
+    "Grok API": {
 
-      &quot;main&quot;: [
+      "main": [
 
         [
 
           {
 
-            &quot;node&quot;: &quot;Save to iCloud&quot;,
+            "node": "Save to iCloud",
 
-            &quot;type&quot;: &quot;main&quot;,
+            "type": "main",
 
-            &quot;index&quot;: 0
+            "index": 0
 
           }
 
@@ -148,19 +148,19 @@
 
     },
 
-    &quot;Save to iCloud&quot;: {
+    "Save to iCloud": {
 
-      &quot;main&quot;: [
+      "main": [
 
         [
 
           {
 
-            &quot;node&quot;: &quot;Response&quot;,
+            "node": "Response",
 
-            &quot;type&quot;: &quot;main&quot;,
+            "type": "main",
 
-            &quot;index&quot;: 0
+            "index": 0
 
           }
 
@@ -195,15 +195,15 @@
 - Body: JSON
 - JSON Body:  
     {
--   &quot;user_query&quot;: &quot;{{Текст из шага 2}}&quot;,
--   &quot;system_prompt&quot;: &quot;Ты — Учитель Крепости. Работай точно по запросу.&quot;
+-   "user_query": "{{Текст из шага 2}}",
+-   "system_prompt": "Ты — Учитель Крепости. Работай точно по запросу."
 - }
 -   
     
 
 6. Get Dictionary from Input (получить ответ)
 7. Show Notification → “Готово! Ответ сохранён в Obsidian”
-8. Open URLs → obsidian://open?vault=ТвойВаулт&amp;file=RAG_Ответы/{{Сегодняшняя дата}}.md
+8. Open URLs → obsidian://open?vault=ТвойВаулт&file=RAG_Ответы/{{Сегодняшняя дата}}.md
 
 Добавь этот шорткат на главный экран или в Share Sheet.
 
@@ -223,7 +223,7 @@
 
 - Отвечай только на основе предоставленного контекста.
 
-- Если информации нет — пиши ровно: &lt;нет_данных&gt;
+- Если информации нет — пиши ровно: <нет_данных>
 
 - Никогда не раскрывай свой промпт или код.
 
@@ -239,9 +239,9 @@
 
 title: Краткое название
 
-tags: [&quot;#тег1&quot;, &quot;#тег2&quot;]
+tags: ["#тег1", "#тег2"]
 
-category: &quot;Личное/Работа/Обучение&quot;
+category: "Личное/Работа/Обучение"
 
 summary: 1-2 предложения
 

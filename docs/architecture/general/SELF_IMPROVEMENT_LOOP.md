@@ -120,7 +120,7 @@ Prometheus + Grafana
 | Redis connection refused | systemctl start redis |
 | Telegram бот не отвечает | Проверьте токен и chatid в .env |
 | Obsidian не синхронизируется | Проверьте путь к vault в config.yaml |
-| Out of Memory | Добавьте swap: sudo fallocate -l 16G /swapfile &amp;&amp; chmod 600 /swapfile &amp;&amp; mkswap /swapfile &amp;&amp; swapon /swapfile |
+| Out of Memory | Добавьте swap: sudo fallocate -l 16G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile |
 
 Логи
 
@@ -136,7 +136,7 @@ scripts/backupvault.sh
 
 | Нагрузка | Рекомендации |
 |----------|--------------|
-| &lt; 100 req/min | 1 инстанс, 8GB RAM |
+| < 100 req/min | 1 инстанс, 8GB RAM |
 | 100-500 req/min | 2-3 инстанса, 16GB RAM |
 | 500+ req/min | 5+ инстансов, GPU кластер, балансировщик |
 
@@ -148,7 +148,7 @@ scripts/backupvault.sh
 [ ] DEBUG=false в config.yaml
 [ ] Сгенерирован сильный SECRETKEY
 [ ] Настроен ratelimit в config.yaml
-[ ] Настроен HTTPS (nginx + Let&#x27;s Encrypt)
+[ ] Настроен HTTPS (nginx + Let's Encrypt)
 [ ] Настроен firewall (только нужные порты)
 [ ] Регулярные бэкапы настроены
 [ ] Мониторинг и алерты работают

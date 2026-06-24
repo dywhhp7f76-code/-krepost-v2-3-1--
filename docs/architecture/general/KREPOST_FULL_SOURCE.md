@@ -178,26 +178,26 @@ prompts/qualityassessor.md
 
 json
 {
-  &quot;isgood&quot;: false,
-  &quot;reason&quot;: &quot;Содержит фразу отказа; Слишком короткий ответ на сложный запрос&quot;,
-  &quot;confidence&quot;: 0.3,
-  &quot;shouldfallback&quot;: true
+  "isgood": false,
+  "reason": "Содержит фразу отказа; Слишком короткий ответ на сложный запрос",
+  "confidence": 0.3,
+  "shouldfallback": true
 }
 
 prompts/improvementanalyzer.md
 
 json
 {
-  &quot;targetversion&quot;: &quot;v1.0&quot;,
-  &quot;proposedchanges&quot;: [
-    &quot;Fix: refusal - добавлена инструкция давать гипотезы вместо отказов&quot;,
-    &quot;Fix: tooshort - требование развёрнутых ответов на сложные вопросы&quot;
+  "targetversion": "v1.0",
+  "proposedchanges": [
+    "Fix: refusal - добавлена инструкция давать гипотезы вместо отказов",
+    "Fix: tooshort - требование развёрнутых ответов на сложные вопросы"
   ],
-  &quot;newsystemprompt&quot;: &quot;[ПОЛНЫЙ НОВЫЙ ПРОМПТ]&quot;,
-  &quot;rationale&quot;: &quot;Автоматическое исправление: частые отказы и короткие ответы&quot;,
-  &quot;estimatedimpact&quot;: {
-    &quot;refusal&quot;: 0.7,
-    &quot;tooshort&quot;: 0.6
+  "newsystemprompt": "[ПОЛНЫЙ НОВЫЙ ПРОМПТ]",
+  "rationale": "Автоматическое исправление: частые отказы и короткие ответы",
+  "estimatedimpact": {
+    "refusal": 0.7,
+    "tooshort": 0.6
   }
 }
 
@@ -210,7 +210,7 @@ krepost/agents/councilmode.py
 krepost/fallback/smartfallback.py (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 
 ```python
-&quot;&quot;&quot;Smart Fallback System — Production Ready v2&quot;&quot;&quot;
+"""Smart Fallback System — Production Ready v2"""
 import asyncio
 import aiohttp
 import time
@@ -220,10 +220,10 @@ from pydantic import BaseModel, Field
 from dataclasses import dataclass
 from contextlib import asynccontextmanager
 
-logger = logging.getLogger(&quot;SmartFallback&quot;)
+logger = logging.getLogger("SmartFallback")
 
 class CloudProviderConfig(BaseModel):
-    name: Literal[&quot;venice&quot;, &quot;grok&quot;]
+    name: Literal["venice", "grok"]
     apikey: str
     baseurl: str  # БЕЗ /chat/completions
     model: str
@@ -246,7 +246,7 @@ class QualityAssessment(BaseModel):
 
 class RouteDecision(BaseModel):
     usecloud: bool
-    provider: Optional[Literal[&quot;venice&quot;, &quot;grok&quot;]] = None
+    provider: Optional[Literal["venice", "grok"]] = None
     reason: str
     costestimate: Optional[float] = None
 
@@ -260,43 +260,43 @@ class CloudResponse(BaseModel):
     duration: float
 
 class PerProviderCircuitBreaker:
-    &quot;&quot;&quot;Circuit breaker на провайдер&quot;&quot;&quot;
+    """Circuit breaker на провайдер"""
     def init(self, threshold: int = 3, cooldownseconds: int = 300):
         self.threshold = threshold
         self.cooldown = cooldownseconds
         self.failurecount = 0
         self.lastfailuretime = 0
         self.isopen = False
-        self.state = &quot;closed&quot;  # closed, open, halfopen
+        self.state = "closed"  # closed, open, halfopen
     
     def recordfailure(self):
         self.failurecount += 1
         self.lastfailuretime = time.time()
-        if self.failurecount &gt;= self.threshold:
+        if self.failurecount >= self.threshold:
             self.isopen = True
-            self.state = &quot;open&quot;
-            logger.warning(f&quot;Circuit breaker OPENED for {self.cooldown}s&quot;)
+            self.state = "open"
+            logger.warning(f"Circuit breaker OPENED for {self.cooldown}s")
     
     def recordsuccess(self):
         self.failurecount = 0
         self.isopen = False
-        self.state = &quot;closed&quot;
+        self.state = "closed"
     
-    def canexecute(self) -&gt; bool:
+    def canexecute(self) -> bool:
         if not self.isopen:
             return True
-        if time.time() - self.lastfailuretime &gt; self.cooldown:
+        if time.time() - self.lastfailuretime > self.cooldown:
             self.isopen = False
             self.failurecount = 0
-            self.state = &quot;halfopen&quot;
-            logger.info(&quot;Circuit breaker HALFOPEN&quot;)
+            self.state = "halfopen"
+            logger.info("Circuit breaker HALFOPEN")
             return True
         return False
 
 class QualityAssessor:
     REFUSALPHRASES = [
-        &quot;не знаю&quot;, &quot;не уверен&quot;, &quot;недостаточно данных&quot;, &quot;не могу ответить&quot;,
-        &quot;не имею информации&quot;, &quot;извините&quot;, &quot;не могу помочь&quot;, &quot;нет информации&quot;
+        "не знаю", "не уверен", "недостаточно данных", "не могу ответить",
+        "не имею информации", "извините", "не могу помочь", "нет информации"
     ]
     
     def assess(
@@ -305,35 +305,35 @@ class QualityAssessor:
         query: str,
         ragscore: float = 1.0,
         forcecloud: bool = False
-    ) -&gt; dict:
+    ) -> dict:
         response = response.strip()
         querytokens = len(query.split())
         reasons = []
         confidence = 0.8
         
         if any(phrase in response.lower() for phrase in self.REFUSALPHRASES):
-            reasons.append(&quot;Содержит фразу отказа&quot;)
+            reasons.append("Содержит фразу отказа")
             confidence = 0.3
         
-        if len(response) &lt; 50 and querytokens &gt; 25:
-            reasons.append(&quot;Слишком короткий ответ на сложный запрос&quot;)
+        if len(response) < 50 and querytokens > 25:
+            reasons.append("Слишком короткий ответ на сложный запрос")
             confidence = min(confidence, 0.4)
         
-        if ragscore &lt; 0.6:
-            reasons.append(f&quot;Низкий RAG retrieval score ({ragscore:.2f})&quot;)
+        if ragscore < 0.6:
+            reasons.append(f"Низкий RAG retrieval score ({ragscore:.2f})")
             confidence = min(confidence, 0.5)
         
         if forcecloud:
-            reasons.append(&quot;Принудительный fallback&quot;)
+            reasons.append("Принудительный fallback")
             confidence = 0.1
         
-        shouldfallback = len(reasons) &gt; 0 or confidence &lt; 0.55
+        shouldfallback = len(reasons) > 0 or confidence < 0.55
         
         return {
-            &quot;isgood&quot;: not shouldfallback,
-            &quot;reason&quot;: &quot;; &quot;.join(reasons) if reasons else &quot;Качество приемлемое&quot;,
-            &quot;confidence&quot;: confidence,
-            &quot;shouldfallback&quot;: shouldfallback
+            "isgood": not shouldfallback,
+            "reason": "; ".join(reasons) if reasons else "Качество приемлемое",
+            "confidence": confidence,
+            "shouldfallback": shouldfallback
         }
 
 class CloudEngine:
@@ -352,38 +352,38 @@ class CloudEngine:
     
     async def generate(
         self,
-        provider: Literal[&quot;venice&quot;, &quot;grok&quot;],
+        provider: Literal["venice", "grok"],
         prompt: str,
         systemprompt: Optional[str] = None,
-        ragcontext: str = &quot;&quot;,
+        ragcontext: str = "",
         temperature: float = 0.7,
         maxtokens: int = 2048,
     8,
-    ) -&gt; dict:
+    ) -> dict:
         cfg = self.config[provider]
         
         # Build messages with RAG context
         messages = []
         if systemprompt:
-            messages.append({&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: systemprompt})
+            messages.append({"role": "system", "content": systemprompt})
         if ragcontext:
-            messages.append({&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: f&quot;Контекст из базы знаний:\n{ragcontext}&quot;})
-        messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt})
+            messages.append({"role": "system", "content": f"Контекст из базы знаний:\n{ragcontext}"})
+        messages.append({"role": "user", "content": prompt})
         
         payload = {
-            &quot;model&quot;: cfg[&quot;model&quot;],
-            &quot;messages&quot;: messages,
-            &quot;temperature&quot;: temperature,
-            &quot;maxtokens&quot;: maxtokens,
-            &quot;stream&quot;: False,
+            "model": cfg["model"],
+            "messages": messages,
+            "temperature": temperature,
+            "maxtokens": maxtokens,
+            "stream": False,
         }
         
         headers = {
-            &quot;Authorization&quot;: f&quot;Bearer {cfg[&#x27;apikey&#x27;]}&quot;,
-            &quot;Content-Type&quot;: &quot;application/json&quot;,
+            "Authorization": f"Bearer {cfg['apikey']}",
+            "Content-Type": "application/json",
         }
         
-        url = f&quot;{cfg[&#x27;baseurl&#x27;]}/chat/completions&quot;
+        url = f"{cfg['baseurl']}/chat/completions"
         
         async with self.sessionmanager() as session:
             start = time.time()
@@ -395,29 +395,29 @@ class CloudEngine:
                             if resp.status == 429:
                                 await asyncio.sleep(2  attempt)
                                 continue
-                            raise Exception(f&quot;{provider} API {resp.status}: {text}&quot;)
+                            raise Exception(f"{provider} API {resp.status}: {text}")
                         
                         data = await resp.json()
-                        message = data[&quot;choices&quot;][0][&quot;message&quot;][&quot;content&quot;]
+                        message = data["choices"][0]["message"]["content"]
                         
-                        usage = data.get(&quot;usage&quot;, {})
-                        inputtokens = usage.get(&quot;prompttokens&quot;, 0)
-                        outputtokens = usage.get(&quot;completiontokens&quot;, 0)
+                        usage = data.get("usage", {})
+                        inputtokens = usage.get("prompttokens", 0)
+                        outputtokens = usage.get("completiontokens", 0)
                         
-                        cfgpricing = self.config[&quot;pricing&quot;][provider]
+                        cfgpricing = self.config["pricing"][provider]
                         cost = (
-                            inputtokens / 1000000  cfgpricing[&quot;input&quot;] +
-                            outputtokens / 1000000  cfgpricing[&quot;output&quot;]
+                            inputtokens / 1000000  cfgpricing["input"] +
+                            outputtokens / 1000000  cfgpricing["output"]
                         )
                         
                         return {
-                            &quot;content&quot;: message,
-                            &quot;model&quot;: cfg[&quot;model&quot;],
-                            &quot;provider&quot;: provider,
-                            &quot;inputtokens&quot;: inputtokens,
-                            &quot;outputtokens&quot;: outputtokens,
-                            &quot;cost&quot;: cost,
-                            &quot;duration&quot;: time.time() - start,
+                            "content": message,
+                            "model": cfg["model"],
+                            "provider": provider,
+                            "inputtokens": inputtokens,
+                            "outputtokens": outputtokens,
+                            "cost": cost,
+                            "duration": time.time() - start,
                         }
                 except asyncio.TimeoutError:
                     if attempt == 2:
@@ -427,19 +427,19 @@ class CloudEngine:
                     if attempt == 2:
                         raise
                     await asyncio.sleep(1.5  (attempt + 1))
-            raise Exception(&quot;Max retries exceeded&quot;)
+            raise Exception("Max retries exceeded")
 
 class SmartRouter:
     def init(self, config: dict):
         self.config = config
         self.cloudengine = CloudEngine(config)
         self.circuitbreakers = {
-            &quot;venice&quot;: CircuitBreaker(config.get(&quot;circuitbreaker&quot;, {})),
-            &quot;grok&quot;: CircuitBreaker(config.get(&quot;circuitbreaker&quot;, {})),
+            "venice": CircuitBreaker(config.get("circuitbreaker", {})),
+            "grok": CircuitBreaker(config.get("circuitbreaker", {})),
         }
         self.assessor = QualityAssessor()
         self.totalcloudcost = 0.0
-        self.stats = {&quot;local&quot;: 0, &quot;cloud&quot;: 0, &quot;fallbackfailed&quot;: 0}
+        self.stats = {"local": 0, "cloud": 0, "fallbackfailed": 0}
     
     async def route(
         self,
@@ -448,71 +448,71 @@ class SmartRouter:
         ragcontext: str,
         ragscore: float = 1.0,
         forcecloud: bool = False,
-        preferredcloud: Literal[&quot;venice&quot;, &quot;grok&quot;] = &quot;venice&quot;
-    ) -&gt; tuple[dict, Optional[dict]]:
+        preferredcloud: Literal["venice", "grok"] = "venice"
+    ) -> tuple[dict, Optional[dict]]:
         
         assessment = self.assessor.assess(localresponse, query, ragscore, forcecloud)
         
-        if not assessment[&quot;shouldfallback&quot;]:
-            self.stats[&quot;local&quot;] += 1
+        if not assessment["shouldfallback"]:
+            self.stats["local"] += 1
             return {
-                &quot;usecloud&quot;: False,
-                &quot;reason&quot;: &quot;Локальный ответ качественный&quot;,
-                &quot;provider&quot;: None,
-                &quot;costestimate&quot;: 0.0
+                "usecloud": False,
+                "reason": "Локальный ответ качественный",
+                "provider": None,
+                "costestimate": 0.0
             }, None
         
         # Check circuit breaker for preferred provider
         if not self.circuitbreakers[preferredcloud].canexecute():
             # Try alternative
-            alt = &quot;grok&quot; if preferredcloud == &quot;venice&quot; else &quot;venice&quot;
+            alt = "grok" if preferredcloud == "venice" else "venice"
             if self.circuitbreakers[alt].canexecute():
                 preferredcloud = alt
             else:
                 return {
-                    &quot;usecloud&quot;: False,
-                    &quot;reason&quot;: &quot;Все облачные провайдеры в circuit breaker&quot;,
-                    &quot;provider&quot;: None,
-                    &quot;costestimate&quot;: 0.0
+                    "usecloud": False,
+                    "reason": "Все облачные провайдеры в circuit breaker",
+                    "provider": None,
+                    "costestimate": 0.0
                 }, None
         
         try:
-            async with CloudEngine(self.config[&quot;providers&quot;]) as cloud:
+            async with CloudEngine(self.config["providers"]) as cloud:
                 cloudresponse = await cloud.generate(
                     provider=preferredcloud,
                     prompt=query,
-                    systemprompt=&quot;Ты — полезный и точный ассистент.&quot;,
+                    systemprompt="Ты — полезный и точный ассистент.",
                     ragcontext=ragcontext,  # ВАЖНО: передаем контекст!
                 )
             
             self.circuitbreakers[preferredcloud].recordsuccess()
-            self.totalcloudcost += cloudresponse[&quot;cost&quot;]
-            self.stats[&quot;cloud&quot;] += 1
+            self.totalcloudcost += cloudresponse["cost"]
+            self.stats["cloud"] += 1
             
             return {
-                &quot;usecloud&quot;: True,
-                &quot;provider&quot;: preferredcloud,
-                &quot;reason&quot;: &quot;Fallback: &quot; + &quot;; &quot;.join([&quot;Причина fallback&quot;]),
-                &quot;costestimate&quot;: cloudresponse[&quot;cost&quot;]
+                "usecloud": True,
+                "provider": preferredcloud,
+                "reason": "Fallback: " + "; ".join(["Причина fallback"]),
+                "costestimate": cloudresponse["cost"]
             }, cloudresponse
             
         except Exception as e:
             self.circuitbreakers[preferredcloud].recordfailure()
-            logger.error(f&quot;Cloud fallback failed: {e}&quot;)
-            self.stats[&quot;fallbackfailed&quot;] += 1
+            logger.error(f"Cloud fallback failed: {e}")
+            self.stats["fallbackfailed"] += 1
             return {
-                &quot;usecloud&quot;: False,
-                &quot;reason&quot;: f&quot;Облако недоступно: {str(e)}&quot;,
-                &quot;provider&quot;: None,
-                &quot;costestimate&quot;: 0.0
+                "usecloud": False,
+                "reason": f"Облако недоступно: {str(e)}",
+                "provider": None,
+                "costestimate": 0.0
             }, None
     
-    def getstats(self) -&gt; dict:
+    def getstats(self) -> dict:
         return {
-            &quot;totalcloudcostusd&quot;: round(self.totalcloudcost, 4),
-            &quot;localrequests&quot;: self.stats[&quot;local&quot;],
-            &quot;cloudrequests&quot;: self.stats[&quot;cloud&quot;],
-            &quot;fallbackfailed&quot;: self.stats[&quot;fallbackfailed&quot;],
-            &quot;circuitbreakers&quot;: {
-                k: {&quot;open&quot;: v.isopen, &quot;failures&quot;: v.failurecount}
+            "totalcloudcostusd": round(self.totalcloudcost, 4),
+            "localrequests": self.stats["local"],
+            "cloudrequests": self.stats["cloud"],
+            "fallbackfailed": self.stats["fallbackfailed"],
+            "circuitbreakers": {
+                k: {"open": v.isopen, "failures": v.failurecount}
                 for k, v in self.circuitbreakers.items()

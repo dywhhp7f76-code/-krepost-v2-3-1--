@@ -1,11 +1,11 @@
 ---
 tags: [крепость, песочница, тренировка, архитектура, разбор]
 date: 2026-06-19
-status: v1.1 — hardening после 6 аудитов, готово к коду
+status: v1.2 — hardening после 6 аудитов, готово к коду
 зона: dirty (съёмный SSD / MacBook Air)
 ---
 
-# 🧪 Тренировочная песочница — архитектурная карта v1.1
+# 🧪 Тренировочная песочница — архитектурная карта v1.2
 
 Разбор ДО кода. Цель: Guard учится отличать атаки на размеченных тобой
 примерах через **few-shot память** (вариант а — без дообучения весов).
@@ -23,9 +23,9 @@ status: v1.1 — hardening после 6 аудитов, готово к коду
 ```
   СЪЁМНЫЙ SSD (воткнут только когда тренируешь)        MAC STUDIO (боевой, всегда)
   ┌─────────────────────────────────────┐             ┌──────────────────────────┐
-  │  training/                          │             │  Guard (Qwen3Guard-4B)   │
+  │  training/                          │             │  Guard (Qwen3Guard-Gen-4B) │
   │   ├── _incoming/  (автоген, карантин)│   выжимка   │   + few-shot база        │
-  │   ├── clean/      (чистые примеры)   │  ──эмбед──&gt; │   (эмбеддинги атак,      │
+  │   ├── clean/      (чистые примеры)   │  ──эмбед──> │   (эмбеддинги атак,      │
   │   └── poison/     (заражённые)       │   под gate  │    НЕ тексты ядов)       │
   │                                     │             │                          │
   │  training_labels.db (разметка)      │             │  security.py (боевой)    │
@@ -67,8 +67,8 @@ VerdictLog = что Guard видел в бою. training_labels = что ты з
 ```
 training_labels:
   example_hash   TEXT PK    # sha256 тела примера
-  label          TEXT       # &#x27;poison&#x27; | &#x27;clean&#x27;
-  source         TEXT       # &#x27;manual&#x27; | &#x27;garak&#x27; | &#x27;attacker&#x27;
+  label          TEXT       # 'poison' | 'clean'
+  source         TEXT       # 'manual' | 'garak' | 'attacker'
   added_date     REAL       # [Камень 5] для отслеживания свежести/дрейфа
   note           TEXT       # твой коммент (опц.)
 ```
@@ -112,7 +112,7 @@ training_labels:
 ## Модуль 6. Боевое применение (на Mac Studio, диск НЕ нужен)
 
 Few-shot встраивается в существующий security.py как ещё один сигнал:
-- приходит ввод → Guard слой 1 (regex) + слой 2 (Qwen3Guard) + **few-shot match**;
+- приходит ввод → Guard слой 1 (regex) + слой 2 (Qwen3Guard-Gen-4B) + **few-shot match**;
 - few-shot: близок ли ввод к известным атакам из выжимки? (косинус);
 - близок → поднять подозрение (в YELLOW/RED).
 
@@ -204,7 +204,7 @@ Gate на человеке на уровне импорта.
 
 **H1. Отдельный retrieval-эмбеддер ≠ Guard** [все 6]
 Qwen3Guard — NLI-модель (entailment), её эмбеддинги слабы для поиска похожести.
-Яд &quot;ignore all previous&quot; и benign &quot;follow instructions carefully&quot; → близкие у NLI,
+Яд "ignore all previous" и benign "follow instructions carefully" → близкие у NLI,
 разный вердикт. Few-shot ловил бы «похожее по стилю», не «по опасности».
 → Отдельная retrieval-модель для training_index (BGE-M3 / GTE — заточены под
 cosine). Guard (NLI) и few-shot (cosine) — ОРТОГОНАЛЬНЫЕ сигналы, сливаются в вердикт.
@@ -232,12 +232,12 @@ cos≥0.99 к существующему — не дублировать (счё
 
 **H5. Канонизация хеша шире NFKC** [4 из 6]
 NFKC мало. Один яд с лишним пробелом/регистром/zero-width → другой хеш → дубль-призрак.
-→ Канонизатор: NFKC + удалить control-chars (category &#x27;C&#x27;) + zero-width + strip +
+→ Канонизатор: NFKC + удалить control-chars (category 'C') + zero-width + strip +
 collapse пробелов в один + (опц.) lowercase. Хеш от «сжатой» строки.
 
 **H6. Лимиты/TTL на _incoming/** [4 из 6]
 Garak за ночь нагенерит 50k → диск кончится → автоген упадёт молча.
-→ TTL: &gt;14 дней без решения → в archive/ (не удалять). Лимит файлов/размера →
+→ TTL: >14 дней без решения → в archive/ (не удалять). Лимит файлов/размера →
 пауза автогена + Telegram-алерт. Лёгкий пред-фильтр: бинарь/картинку/дубль отсеять.
 
 ### СИЛЬНОЕ (2-3 аудита, беру)
@@ -260,7 +260,7 @@ clean / poison / **suspect_clean** / needs_review. Сработал Guard на c
 Границу пересекает массив, не процесс чтения ядов.
 
 **H10. Latency budget + confidence-gate** [аудит 6]
-- few-shot не должен класть API: поиск &gt;порога latency → деградировать (откл. few-shot,
+- few-shot не должен класть API: поиск >порога latency → деградировать (откл. few-shot,
   оставить Guard). Top-K (3-5 ближайших), не вся база в контекст.
 - Alert fatigue: дёргать тебя на gate ТОЛЬКО при высокой уверенности Guard.
   Низкая уверенность → не блок, а флаг needs_review_later в очередь, не прерывая поток.

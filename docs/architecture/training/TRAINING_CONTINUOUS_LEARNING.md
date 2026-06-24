@@ -78,7 +78,7 @@ Continuous Learning для локальной LLM (7B–13B) на consumer hardw
 
 model:
 
-  base_model: &quot;meta-llama/Llama-3.1-8B&quot;
+  base_model: "meta-llama/Llama-3.1-8B"
 
   load_in_4bit: true
 
@@ -94,7 +94,7 @@ lora:
 
   lora_dropout: 0.05
 
-  target_modules: [&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;o_proj&quot;, &quot;gate_proj&quot;, &quot;up_proj&quot;, &quot;down_proj&quot;]
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
   
 
@@ -110,7 +110,7 @@ training:
 
   max_seq_length: 4096
 
-  optimizer: &quot;adamw_8bit&quot;
+  optimizer: "adamw_8bit"
 
   use_replay_buffer: true
 

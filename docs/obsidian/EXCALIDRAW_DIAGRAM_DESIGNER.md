@@ -9,7 +9,7 @@ markdown
 # Description: Создает конфигурации для плагина Obsidian Tracker для визуализации графиков, привычек и прогресса по дням.
 
 ## Triggers
-- &quot;Сделай график для Tracker&quot;, &quot;Нарисуй трекер привычек в Обсидиан&quot;, &quot;Код для Obsidian Tracker&quot;, &quot;Визуализируй YAML&quot;.
+- "Сделай график для Tracker", "Нарисуй трекер привычек в Обсидиан", "Код для Obsidian Tracker", "Визуализируй YAML".
 
 ## Workflow Instructions
 1. Определи, какую переменную из ежедневных заметок нужно отслеживать (например, `mood: 7` или `running: true`).
@@ -24,8 +24,8 @@ searchTarget: mood
 folder: 📅 Daily Notes
 startDate: 2026-01-01
 line:
-    title: &quot;Мониторинг настроения&quot;
-    yAxisLabel: &quot;Оценка&quot;
-    lineColor: &quot;#ff7675&quot;
+    title: "Мониторинг настроения"
+    yAxisLabel: "Оценка"
+    lineColor: "#ff7675"
 ```
 ````
