@@ -78,14 +78,40 @@ def strip_code(text: str) -> str:
     return (m.group(1) if m else text).strip()
 
 
+def _sandbox_cmd(script: str) -> list[str]:
+    """Обернуть запуск в песочницу: macOS sandbox-exec или Docker --network=none."""
+    if sys.platform == "darwin":
+        profile = (
+            '(version 1)'
+            '(deny default)'
+            '(allow file-read* file-write* (subpath "/private/tmp"))'
+            '(allow file-read* (subpath "/usr") (subpath "/Library") (subpath "/System"))'
+            f'(allow file-read* file-write* (subpath "{Path(script).parent}"))'
+            '(allow process-exec (subpath "/usr"))'
+            '(allow sysctl-read)'
+            '(deny network*)'
+        )
+        return ["sandbox-exec", "-p", profile, sys.executable, script]
+    docker = os.environ.get("KREPOST_USE_DOCKER_SANDBOX")
+    if docker:
+        return [
+            "docker", "run", "--rm", "--network=none",
+            "--read-only", "--tmpfs", "/tmp:size=64m",
+            "-v", f"{Path(script).parent}:/work:ro",
+            "-w", "/work",
+            docker, "python3", Path(script).name,
+        ]
+    return [sys.executable, script]
+
+
 def run_code(code: str) -> tuple[bool, str]:
-    """Запуск в изолированной временной папке с таймаутом. (ok, лог)."""
+    """Запуск в изолированной временной папке с таймаутом и песочницей."""
     with tempfile.TemporaryDirectory() as tmp:
         f = Path(tmp) / "candidate.py"
         f.write_text(code, encoding="utf-8")
         try:
             p = subprocess.run(
-                [sys.executable, str(f)],
+                _sandbox_cmd(str(f)),
                 capture_output=True,
                 text=True,
                 timeout=EXEC_TIMEOUT,

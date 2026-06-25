@@ -157,15 +157,22 @@ def normalize_event(event: Any) -> Optional[NormalizedEvent]:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class JsonlWriter:
-    def __init__(self, path: Path, max_bytes: int = 10 * 1024 * 1024):
+    def __init__(self, path: Path, max_bytes: int = 10 * 1024 * 1024,
+                 max_backups: int = 5):
         self.path = path
         self.max_bytes = max_bytes
+        self.max_backups = max_backups
 
     def _rotate_if_needed(self) -> None:
         try:
             if self.path.exists() and self.path.stat().st_size >= self.max_bytes:
+                for i in range(self.max_backups - 1, 0, -1):
+                    src = self.path.with_suffix(f"{self.path.suffix}.{i}")
+                    dst = self.path.with_suffix(f"{self.path.suffix}.{i + 1}")
+                    if src.exists():
+                        dst.unlink(missing_ok=True)
+                        src.rename(dst)
                 backup = self.path.with_suffix(self.path.suffix + ".1")
-                backup.unlink(missing_ok=True)
                 self.path.rename(backup)
         except OSError:
             logger.exception("JSONL rotation failed")
