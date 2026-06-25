@@ -790,100 +790,54 @@ class CacheLayer:
         self._l1_max = l1_max_entries
         self._l2_max = l2_max_entries
         self._l3_max = l3_max_entries
-        self._l2_similarity = l2_similarity_threshold
+        self._l2_threshold = l2_similarity_threshold
         self._l2_ttl = l2_default_ttl
         self._l3_ttl = l3_default_ttl
         self._prompt_version = prompt_version
+        self.l1: Optional[QueryEmbeddingCache] = None
+        self.l2: Optional[RAGResultsCache] = None
+        self.l3: Optional[LLMResponseCache] = None
 
-        self._l1: Optional[QueryEmbeddingCache] = None
-        self._l2: Optional[RAGResultsCache] = None
-        self._l3: Optional[LLMResponseCache] = None
-        self._ready = False
-
-    @property
-    def l1_max_entries(self) -> int:
-        return self._l1_max
+    async def warmup(self) -> "CacheLayer":
+        if self._encoder is None:
+            logger.info(f"Loading embedding model: {self._model_name}")
+            self._encoder = await asyncio.to_thread(SentenceTransformer, self._model_name)
+            logger.info(f"Model loaded | dim={self._encoder.get_sentence_embedding_dimension()}")
+        self.l1 = QueryEmbeddingCache(encoder=self._encoder, cache_dir=self.cache_dir,
+                                      max_entries=self._l1_max, on_event=self._on_event)
+        self.l2 = RAGResultsCache(l1_cache=self.l1, cache_dir=self.cache_dir,
+                                  max_entries=self._l2_max, similarity_threshold=self._l2_threshold,
+                                  default_ttl=self._l2_ttl, on_event=self._on_event)
+        self.l3 = LLMResponseCache(cache_dir=self.cache_dir, max_entries=self._l3_max,
+                                   default_ttl=self._l3_ttl, prompt_version=self._prompt_version,
+                                   on_event=self._on_event)
+        return self
 
     @property
     def is_ready(self) -> bool:
-        return self._ready
-
-    def warmup(self) -> None:
-        if self._ready:
-            return
-        self._encoder = SentenceTransformer(self._model_name)
-        self._l1 = QueryEmbeddingCache(
-            encoder=self._encoder, cache_dir=self.cache_dir,
-            max_entries=self._l1_max, on_event=self._on_event)
-        self._l2 = RAGResultsCache(
-            l1_cache=self._l1, cache_dir=self.cache_dir,
-            max_entries=self._l2_max, similarity_threshold=self._l2_similarity,
-            default_ttl=self._l2_ttl, on_event=self._on_event)
-        self._l3 = LLMResponseCache(
-            cache_dir=self.cache_dir, max_entries=self._l3_max,
-            default_ttl=self._l3_ttl, prompt_version=self._prompt_version,
-            on_event=self._on_event)
-        self._ready = True
-        logger.info("CacheLayer warmup complete")
-
-    def _ensure_ready(self) -> None:
-        if not self._ready:
-            self.warmup()
-
-    async def encode(self, query: str) -> np.ndarray:
-        self._ensure_ready()
-        assert self._l1 is not None
-        return await self._l1.encode(query)
-
-    async def get_l2(self, query: str) -> Optional[L2Entry]:
-        self._ensure_ready()
-        assert self._l2 is not None
-        return await self._l2.get(query)
-
-    def get_l3(self, query: str, context_hash: str, model: str) -> Optional[L3Entry]:
-        self._ensure_ready()
-        assert self._l3 is not None
-        return self._l3.get(query, context_hash, model)
-
-    async def put_l2(self, query: str, chunks: List[Dict], source_notes: List[str],
-                     verdict: SecurityVerdict, ttl: Optional[float] = None) -> Optional[str]:
-        self._ensure_ready()
-        assert self._l2 is not None
-        return await self._l2.put(query, chunks, source_notes, verdict, ttl)
-
-    def put_l3(self, query: str, response: str, context_hash: str, model: str,
-               source_notes: List[str], verdict: SecurityVerdict,
-               ttl: Optional[float] = None) -> Optional[str]:
-        self._ensure_ready()
-        assert self._l3 is not None
-        return self._l3.put(query, response, context_hash, model, source_notes, verdict, ttl)
+        return self._encoder is not None and self.l1 is not None
 
     def invalidate_by_note(self, note_path: str) -> dict:
-        self._ensure_ready()
-        assert self._l2 is not None
-        assert self._l3 is not None
-        l2_removed = self._l2.invalidate_by_note(note_path)
-        l3_removed = self._l3.invalidate_by_note(note_path)
-        return {"l2_removed": l2_removed, "l3_removed": l3_removed}
+        """Каскадная инвалидация L2 и L3 по заметке. L1 не трогаем."""
+        result = {"l2_removed": 0, "l3_removed": 0}
+        if self.l2 is not None:
+            result["l2_removed"] = self.l2.invalidate_by_note(note_path)
+        if self.l3 is not None:
+            result["l3_removed"] = self.l3.invalidate_by_note(note_path)
+        return result
 
     def stats(self) -> dict:
-        self._ensure_ready()
-        assert self._l1 is not None
-        assert self._l2 is not None
-        assert self._l3 is not None
-        return {
-            "l1": self._l1.stats().model_dump(),
-            "l2": self._l2.stats().model_dump(),
-            "l3": self._l3.stats().model_dump(),
-            "anomaly": self.anomaly.stats_dict(),
-        }
+        return {"l1": self.l1.stats().model_dump() if self.l1 else None,
+                "l2": self.l2.stats().model_dump() if self.l2 else None,
+                "l3": self.l3.stats().model_dump() if self.l3 else None,
+                "anomaly": self.anomaly.stats_dict(),
+                "model": self._model_name, "prompt_version": self._prompt_version}
 
     def close(self) -> None:
-        if self._l1 is not None:
-            self._l1.close()
-        if self._l2 is not None:
-            self._l2.close()
-        if self._l3 is not None:
-            self._l3.close()
-        self._ready = False
-        logger.info("CacheLayer closed")
+        for layer in (self.l1, self.l2, self.l3):
+            if layer is not None:
+                layer.close()
+        logger.info("CacheLayer closed — all layers synced")
+
+    async def aclose(self) -> None:
+        await asyncio.to_thread(self.close)
